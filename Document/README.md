@@ -1,1 +1,1 @@
-
+doksi és/vagy ppt
