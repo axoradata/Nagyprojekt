@@ -2,23 +2,38 @@
 export const users = [
   {
     id: 1,
-    name: 'Admin Felhasználó',
+    username: 'Admin Felhasználó',
     email: 'admin@example.com',
     password: '1234',
-    role: 'admin'
+    role_id: '1'
   },
   {
     id: 2,
-    name: 'Csoportvezető',
+    username: 'Csoportvezető',
     email: 'leader@example.com',
     password: '1234',
-    role: 'leader'
+    role_id: '2'
   },
   {
     id: 3,
-    name: 'Dolgozó',
+    username: 'Dolgozó',
     email: 'worker@example.com',
     password: '1234',
-    role: 'worker'
+    role_id: '3'
+  }
+]
+
+export const roles =  [
+  {
+    id: 1,
+    role: "admin"
+  },
+  {
+    id: 2,
+    role: "leader"
+  },
+  {
+    id: 1,
+    role: "worker"
   }
 ]
