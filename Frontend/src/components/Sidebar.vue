@@ -1,35 +1,31 @@
 <template>
   <aside class="sidebar">
-    <h2>MyApp</h2>
-    <ul>
-      <li><router-link to="/dashboard">Dashboard</router-link></li>
-      <li v-if="user && user.role === 'admin'"><router-link to="/admin">Admin Panel</router-link></li>
-      <li v-if="user && user.role === 'leader'"><router-link to="/leader">Csoportvezetői Panel</router-link></li>
-      <li v-if="user"><button @click="logout">Kijelentkezés</button></li>
-    </ul>
+    <h2>Belépve: {{ user.username }}</h2>
+    <nav>
+      <ul>
+        <li><router-link to="/dashboard">Dashboard</router-link></li>
+        <li><router-link to="/profile">Profil</router-link></li>
+        <li v-if="user.role === 'admin'"><router-link to="/users">Felhasználók</router-link></li>
+        <li v-if="user.role === 'admin' || user.role === 'leader'"><router-link to="/groups">Csoportok</router-link></li>
+        <li v-if="user.role === 'admin'"><router-link to="/logs">Események</router-link></li>
+        <li v-if="user.role === 'admin'"><router-link to="/rfid">RFID kezelés</router-link></li>
+
+        <li><button class="btn-logout" @click="logout">Kijelentkezés</button></li>
+      </ul>
+    </nav>
   </aside>
 </template>
 
-<script>
-export default {
-  name: 'Sidebar',
-  data() {
-    return {
-      user: null
-    }
-  },
-  created() {
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      this.user = JSON.parse(storedUser)
-    }
-  },
-  methods: {
-    logout() {
-      localStorage.removeItem('user')
-      this.$router.push('/login')
-    }
-  }
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
+
+const logout = () => {
+  localStorage.removeItem('user')
+  router.push('/login')
 }
 </script>
 
@@ -41,37 +37,41 @@ export default {
   width: 220px;
   height: 100vh;
   background-color: #2c3e50;
-  padding: 20px;
   color: white;
+  padding: 1rem;
 }
 
-.sidebar h2 {
-  margin-bottom: 30px;
-}
-
-.sidebar ul {
+nav ul {
   list-style: none;
   padding: 0;
+  margin: 2rem 0 0 0;
 }
 
-.sidebar li {
-  margin-bottom: 15px;
+nav li {
+  margin: 1rem 0;
 }
 
-.sidebar a {
+nav a {
   color: white;
   text-decoration: none;
 }
 
-.sidebar a:hover {
+nav a:hover {
   text-decoration: underline;
 }
 
-.sidebar button {
-  background: none;
-  border: 1px solid white;
+.btn-logout {
+  background-color: #5a7fa4;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem;
   color: white;
-  padding: 5px 10px;
   cursor: pointer;
+  width: 100%;
+  font-weight: bold;
+}
+
+.btn-logout:hover {
+  background-color: #ff7675;
 }
 </style>
