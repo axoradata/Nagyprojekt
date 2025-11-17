@@ -4,14 +4,14 @@
       <h1>Belépés</h1>
       <form @submit.prevent="handleLogin">
         <div class="form-group">
-          <label>Email:</label>
-          <input type="email" v-model="email" required />
+          <label class="light-text">Email:</label>
+          <input type="email" v-model="email" required class="dark-input" />
         </div>
         <div class="form-group">
-          <label>Jelszó:</label>
-          <input type="password" v-model="password" required />
+          <label class="light-text">Jelszó:</label>
+          <input type="password" v-model="password" required class="dark-input" />
         </div>
-        <button type="submit" class="btn-main">Bejelentkezés</button>
+        <button type="submit" class="btn-main custom-btn-primary">Bejelentkezés</button>
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
       </form>
     </div>
@@ -19,6 +19,7 @@
 </template>
 
 <script>
+// A script rész változatlan marad
 import { users } from '../data'
 
 export default {
@@ -45,6 +46,9 @@ export default {
 </script>
 
 <style>
+/* A globális stílusokat (html, body) átmásolhatod a main CSS fájlba,
+   vagy meghagyhatod itt, de a többi stílus a Login.vue-ban lesz. */
+
 /* 🧩 Alapértelmezett margók eltávolítása globálisan */
 html, body {
   margin: 0;
@@ -59,14 +63,17 @@ html, body {
   align-items: center;
   height: 100vh;
   width: 100vw;
-  background: #2c3e50;
+  /* Fő háttér: Legsötétebb szín */
+  background-color: #222831; 
 }
 
 .auth-box {
-  background: #fff;
+  /* Auth doboz háttér: Világosabb sötét szín */
+  background-color: #393E46; 
   padding: 3rem 3.5rem;
   border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  /* Sötét árnyék a sötét háttéren */
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6); 
   width: 400px;
   max-width: 90%;
   text-align: center;
@@ -74,7 +81,8 @@ html, body {
 
 h1 {
   margin-bottom: 1.8rem;
-  color: #2d3436;
+  /* Szövegszín: Világos bézs */
+  color: #DFD0B8; 
   font-size: 2rem;
   font-weight: 700;
 }
@@ -84,34 +92,40 @@ h1 {
   text-align: left;
 }
 
-label {
+/* Label: Világos bézs a sötét háttéren */
+label.light-text {
   display: block;
   font-size: 0.95rem;
   margin-bottom: 0.3rem;
-  color: #636e72;
+  color: #DFD0B8; 
 }
 
-input {
+/* Input mezők sötét témához igazítva */
+input.dark-input {
   width: 100%;
   padding: 0.6rem 0.8rem;
-  border: 1px solid #b2bec3;
+  background-color: #222831; /* Legsötétebb háttér */
+  color: #DFD0B8; /* Világos szöveg */
+  border: 1px solid #393E46; 
   border-radius: 8px;
   outline: none;
   transition: 0.2s;
 }
 
-input:focus {
-  border-color: #2c3e50;
-  box-shadow: 0 0 6px rgba(9,132,227,0.3);
+/* Fókusz színe a kiemelő színre állítva */
+input.dark-input:focus {
+  border-color: #948979; /* Kiemelő szín */
+  box-shadow: 0 0 6px rgba(148, 137, 121, 0.6); /* Bézs árnyék */
 }
 
-.btn-main {
+/* A korábban használt custom-btn-primary stílusok alkalmazása */
+.custom-btn-primary {
   width: 100%;
   padding: 0.8rem;
   border: none;
   border-radius: 8px;
-  background-color: #2c3e50;
-  color: #fff;
+  background-color: #948979; /* Kiemelő szín */
+  color: white; 
   font-weight: bold;
   cursor: pointer;
   margin-top: 0.5rem;
@@ -119,12 +133,12 @@ input:focus {
   font-size: 1rem;
 }
 
-.btn-main:hover {
-  background-color: #74b9ff;
+.custom-btn-primary:hover {
+  background-color: #7d7264; /* Sötétebb kiemelő hover szín */
 }
 
 .error {
-  color: #d63031;
+  color: #d63031; /* Hibaüzenet marad piros */
   margin-top: 1rem;
   font-weight: 500;
 }

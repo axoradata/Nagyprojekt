@@ -1,10 +1,17 @@
 <template>
-  <div id="app">
+  <div id="app" class="d-flex min-vh-100">
+    
+    <!-- Sidebar mindenhol, kivéve Login -->
     <Sidebar v-if="$route.name !== 'Login'" />
 
-    <main :class="{ 'with-sidebar': $route.name !== 'Login' }">
+    <!-- Tartalom -->
+    <main 
+      class="flex-grow-1"
+      :class="{ 'ms-sidebar': $route.name !== 'Login' }"
+    >
       <router-view />
     </main>
+
   </div>
 </template>
 
@@ -18,27 +25,10 @@ export default {
 </script>
 
 <style scoped>
-#app {
-  display: flex;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-}
 
-/* Alap layout */
-main {
-  flex: 1;
-  color: #2c3e50;
-  transition: margin-left 0.3s ease;
-}
-
-.with-sidebar {
-  margin-left: 240px; 
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
+.ms-sidebar {
+    margin-left: 240px;
+    height: 100vh; 
+    overflow-y: auto;
 }
 </style>

@@ -1,77 +1,158 @@
 <template>
-  <aside class="sidebar">
-    <h2>Belépve: {{ user.username }}</h2>
-    <nav>
-      <ul>
-        <li><router-link to="/dashboard">Dashboard</router-link></li>
-        <li><router-link to="/profile">Profil</router-link></li>
-        <li v-if="user.role === 'admin'"><router-link to="/users">Felhasználók</router-link></li>
-        <li v-if="user.role === 'admin' || user.role === 'leader'"><router-link to="/groups">Csoportok</router-link></li>
-        <li v-if="user.role === 'admin'"><router-link to="/logs">Események</router-link></li>
-        <li v-if="user.role === 'admin'"><router-link to="/rfid">RFID kezelés</router-link></li>
+  <!-- Sidebar (desktop fix + mobile offcanvas) -->
+  <nav
+    id="sidebarMenu"
+    class="d-lg-block bg-dark text-white sidebar collapse"
+  >
+    <div class="position-sticky pt-3 sidebar-sticky">
+      <div class="canvas-header">
+        <h5 class="canvas-title text-center" id="sidebarMenuLabel"><img src="../assets/Axora.png" style="height:150px;"></img></h5>
+      </div>
 
-        <li><button class="btn-logout" @click="logout">Kijelentkezés</button></li>
-      </ul>
-    </nav>
-  </aside>
+      <div class="fotartalom d-flex flex-column h-100">
+        <h5 class="px-3 mb-4 mt-4">
+          Belépve: <span class="fw-bold">{{ user.username }}</span>
+        </h5>
+
+        <ul class="nav flex-column">
+
+          <li class="nav-item">
+            <router-link 
+              to="/dashboard"
+              class="nav-link text-white"
+              :class="{ active: isActive('/dashboard') }"
+            >
+              <i class="bi bi-speedometer2 me-2"></i>
+              Dashboard
+            </router-link>
+          </li>
+
+          <li class="nav-item">
+            <router-link 
+              to="/profile"
+              class="nav-link text-white"
+              :class="{ active: isActive('/profile') }"
+            >
+              <i class="bi bi-person-circle me-2"></i>
+              Profil
+            </router-link>
+          </li>
+
+          <li v-if="user.role === 'admin'" class="nav-item">
+            <router-link
+              to="/users"
+              class="nav-link text-white"
+              :class="{ active: isActive('/users') }"
+            >
+              <i class="bi bi-people-fill me-2"></i>
+              Felhasználók
+            </router-link>
+          </li>
+
+          <li v-if="user.role === 'admin' || user.role === 'leader'" class="nav-item">
+            <router-link
+              to="/groups"
+              class="nav-link text-white"
+              :class="{ active: isActive('/groups') }"
+            >
+              <i class="bi bi-diagram-3-fill me-2"></i>
+              Csoportok
+            </router-link>
+          </li>
+
+          <li v-if="user.role === 'admin'" class="nav-item">
+            <router-link
+              to="/logs"
+              class="nav-link text-white"
+              :class="{ active: isActive('/logs') }"
+            >
+              <i class="bi bi-journal-text me-2"></i>
+              Események
+            </router-link>
+          </li>
+
+          <li v-if="user.role === 'admin'" class="nav-item">
+            <router-link
+              to="/rfid"
+              class="nav-link text-white"
+              :class="{ active: isActive('/rfid') }"
+            >
+              <i class="bi bi-credit-card-2-front-fill me-2"></i>
+              RFID kezelés
+            </router-link>
+          </li>
+
+          <li class="nav-item mt-4  mx-auto">
+            <button 
+              class="btn btn-outline-light px-5"
+              @click="logout"
+            >
+              <i class="bi bi-box-arrow-right me-1"></i>
+              Kijelentkezés
+            </button>
+          </li>
+
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MOBILE: Hamburger button -->
+  <button
+    class="btn btn-dark d-lg-none position-fixed top-0 start-0 m-3"
+    type="button"
+    data-bs-toggle="collapse"
+    data-bs-target="#sidebarMenu"
+  >
+    <i class="bi bi-list"></i>
+  </button>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref } from "vue"
+import { useRouter, useRoute } from "vue-router"
 
 const router = useRouter()
-const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
+const route = useRoute()
+
+const user = ref(JSON.parse(localStorage.getItem("user") || "{}"))
 
 const logout = () => {
-  localStorage.removeItem('user')
-  router.push('/login')
+  localStorage.removeItem("user")
+  router.push("/login")
+}
+
+const isActive = (path) => {
+  return route.path.startsWith(path)
 }
 </script>
 
 <style scoped>
+
+* {
+  color: #DFD0B8 !important;
+}
+
 .sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 220px;
+  width: 240px;
   height: 100vh;
-  background-color: #2c3e50;
-  color: white;
-  padding: 1rem;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 2rem 0 0 0;
+#sidebarMenu {
+  background-color: #393E46 !important;
 }
 
-nav li {
-  margin: 1rem 0;
+.fotartalom {
+  height: calc(100vh - 200px);
+  overflow-y: auto;
 }
 
-nav a {
-  color: white;
-  text-decoration: none;
-}
-
-nav a:hover {
-  text-decoration: underline;
-}
-
-.btn-logout {
-  background-color: #5a7fa4;
-  border: none;
-  border-radius: 8px;
-  padding: 0.7rem;
-  color: white;
-  cursor: pointer;
-  width: 100%;
+.nav-link.active {
   font-weight: bold;
-}
-
-.btn-logout:hover {
-  background-color: #ff7675;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-left: 4px solid #948979;
 }
 </style>
