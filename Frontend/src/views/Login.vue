@@ -49,7 +49,7 @@ export default {
 /* A globális stílusokat (html, body) átmásolhatod a main CSS fájlba,
    vagy meghagyhatod itt, de a többi stílus a Login.vue-ban lesz. */
 
-/* 🧩 Alapértelmezett margók eltávolítása globálisan */
+/* Alapértelmezett margók eltávolítása globálisan */
 html, body {
   margin: 0;
   padding: 0;
@@ -82,7 +82,7 @@ html, body {
 h1 {
   margin-bottom: 1.8rem;
   /* Szövegszín: Világos bézs */
-  color: #DFD0B8; 
+  color: #DFD0B8 !important; 
   font-size: 2rem;
   font-weight: 700;
 }

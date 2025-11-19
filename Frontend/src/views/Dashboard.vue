@@ -1,7 +1,7 @@
 <template>
   <div class="layout-dark">
     <main class="main-content-dark">
-      <h1 class="page-title">Üdv, {{ user.username }}! 👋</h1>
+      <h1 class="page-title">Üdv, {{ user.username }}!</h1>
 
       <div class="stats-grid">
         
@@ -28,7 +28,7 @@
       </div>
 
       <div class="card-dark chart-card">
-          <h2>Heti Munkaidő Eloszlás (Gantt-szerű)</h2>
+          <h2>Napi Ledolgozott Munkaidő (Hétfő-Vasárnap)</h2>
           <div style="height: 100%; width: 100%;">
             <canvas id="weeklyLogChart"></canvas>
           </div>
@@ -53,39 +53,27 @@
 </template>
 
 <script setup>
-import { onMounted, computed, ref, nextTick } from 'vue'
+import { onMounted, computed, ref, nextTick, watch } from 'vue'
 import { users, logins, groups } from '../data'
 import Chart from 'chart.js/auto'; 
 
-const user = JSON.parse(localStorage.getItem('user') || '{}')
+const user = ref(JSON.parse(localStorage.getItem('user') || '{}')) 
 let chartInstance = null; 
 
 // --- DÁTUM SEGÉDFÜGGVÉNYEK ---
 
-// A mock adatok dátumformátumának parsolása.
 const parseLogTime = (logTimeString) => {
     if (!logTimeString) return null;
     const parsable = logTimeString.replace(/(\d{4})\. (\d{2})\. (\d{2})\./, '$1/$2/$3').trim();
     return new Date(parsable);
 };
 
-// Visszaadja a nap 0:00:00 időpontját
 const startOfDay = (date) => {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
     return d;
 };
 
-// Órává konvertálja az időpontot (0-24 skálán)
-const hoursFromStartOfDay = (date) => {
-    if (!date) return 0;
-    const sod = startOfDay(date);
-    return (date.getTime() - sod.getTime()) / (1000 * 60 * 60); // ms -> óra
-};
-
-// --- MUNKAIDŐ SZÁMÍTÁSOK ---
-
-// Kiszámítja a ledolgozott időt órában
 const calculateWorkDuration = (logData) => {
     let totalMinutes = 0;
     let clockInTime = null;
@@ -103,7 +91,7 @@ const calculateWorkDuration = (logData) => {
             if (durationMs > 0) {
                 totalMinutes += durationMs / (1000 * 60); // ms -> perc
             }
-            clockInTime = null; // Páros lezárva
+            clockInTime = null; 
         }
     });
 
@@ -119,14 +107,15 @@ const getUsername = (card_id) => {
 }
 
 const filteredLogs = computed(() => {
-  const userCardId = user.card_id;
+  const userCardId = user.value.card_id; 
+  const userRole = user.value.role;
 
   return logins.filter(log => {
-    if(user.role === 'admin') return true
+    if(userRole === 'admin') return true
     
-    if(user.role === 'leader') {
+    if(userRole === 'leader') {
       const supervisedMembersCardIds = groups
-        .filter(g => g.leader_id === user.id)
+        .filter(g => g.leader_id === user.value.id)
         .flatMap(g => g.members)
         .map(memberId => users.find(u => u.id === memberId)?.card_id)
         .filter(id => id);
@@ -134,7 +123,7 @@ const filteredLogs = computed(() => {
       return supervisedMembersCardIds.includes(log.card_id) || log.card_id == userCardId;
     }
     
-    if(user.role === 'worker') {
+    if(userRole === 'worker') {
       return log.card_id == userCardId
     }
     return false
@@ -154,15 +143,15 @@ const usersInToday = computed(() => {
 });
 
 const supervisedUsersCount = computed(() => {
-    if (user.role !== 'leader') return 0;
+    if (user.value.role !== 'leader') return 0;
     const members = groups
-        .filter(g => g.leader_id === user.id)
+        .filter(g => g.leader_id === user.value.id)
         .flatMap(g => g.members);
     return new Set(members).size;
 });
 
 const myWeeklyWorkHours = computed(() => {
-    if (user.role !== 'worker') return 0;
+    if (user.value.role !== 'worker') return 0;
     
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -173,90 +162,85 @@ const myWeeklyWorkHours = computed(() => {
         return logDate > oneWeekAgo; 
     });
 
-    const ownLogs = relevantLogs.filter(log => log.card_id == user.card_id);
+    const ownLogs = relevantLogs.filter(log => log.card_id == user.value.card_id);
     const totalHours = calculateWorkDuration(ownLogs);
 
     return totalHours.toFixed(1);
 });
 
 
-// 6. Heti Munkaidő Eloszlás Adatok (Range Bar Chart)
+// 6. Heti Munkaidő Összegzés Adatok
 const weeklyChartData = computed(() => {
-    const dayMap = {}; // Nap/dátum -> logok listája
-
-    // 1. Csoportosítás nap szerint (utolsó 7 nap)
-    const today = startOfDay(new Date());
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 6);
-
-    filteredLogs.value.forEach(log => {
-        const logDate = parseLogTime(log.time);
-        if (!logDate || logDate < sevenDaysAgo) return;
-
-        const dateKey = startOfDay(logDate).toISOString().slice(0, 10); 
-        
-        if (!dayMap[dateKey]) {
-            dayMap[dateKey] = [];
-        }
-        dayMap[dateKey].push(log);
-    });
-
-    // 2. Kiszámoljuk minden napra a munkaidő blokkokat (Range-eket)
-    const allWorkRanges = []; // Minden egyes munkaidő blokk egy [start, end] tömb lesz
-    const daysLabels = ['Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat', 'Vasárnap'];
     
-    const todayDayIndex = today.getDay(); // 0=V, 1=H, ...
-    // Kiszámítjuk a Hétfő offsetet (ha ma Hétfő (1), akkor offset 0, ha Kedd (2), akkor 1, ha Vasárnap (0), akkor 6)
-    const mondayOffset = todayDayIndex === 0 ? 6 : todayDayIndex - 1; 
-
-    for(let i = 0; i < 7; i++) {
-        const day = new Date(today);
-        // Beállítjuk az aktuális napot a 7 napos ciklusban (i=0 -> Hétfő)
-        day.setDate(today.getDate() - mondayOffset + i); 
-        const dateKey = day.toISOString().slice(0, 10);
-        
-        const dayLogs = dayMap[dateKey] || [];
-        
-        const sortedLogs = [...dayLogs].sort((a, b) => parseLogTime(a.time) - parseLogTime(b.time));
-        
-        let clockInTime = null;
-
-        // Iterálunk a logokon és keressük a párokat
-        sortedLogs.forEach(log => {
-            const currentTime = parseLogTime(log.time);
-            if (!currentTime) return;
-
-            if (log.log_IN) {
-                clockInTime = currentTime;
-            } else if (clockInTime) {
-                // Kilépés, van előző belépés -> Range Bar adatpont generálása
-                const startHour = hoursFromStartOfDay(clockInTime);
-                const endHour = hoursFromStartOfDay(currentTime);
-                
-                if (endHour > startHour) {
-                    allWorkRanges.push({
-                        x: daysLabels[i], // X tengelyen a nap neve
-                        y: [startHour, endHour] // Y tengelyen az időtartomány [kezdőóra, végóra]
-                    });
-                }
-                clockInTime = null;
-            }
-        });
+    const currentUserId = user.value.card_id; 
+    
+    if (!currentUserId) {
+        return { labels: [], datasets: [] };
     }
 
-    // A Range Bar chart egyetlen dataset-et használ, ahol minden adatpont egy tartomány.
-    return { 
-        labels: daysLabels, // Az X tengelyen lévő kategóriák (Napok)
-        datasets: [
-            {
-                label: 'Munkaidő Blokkok',
-                data: allWorkRanges,
-                backgroundColor: '#948979',
-                borderColor: '#DFD0B8',
-                borderWidth: 1,
-                borderRadius: 5,
-            }
-        ]
+    const today = startOfDay(new Date());
+    const displayDayNamesShort = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V']; 
+    
+    const dateLabels = []; 
+    const fullDateLabels = []; 
+
+    const currentDayOfWeek = today.getDay(); 
+    const daysToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1; 
+
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysToMonday);
+
+    for (let i = 0; i < 7; i++) {
+        const day = new Date(monday);
+        day.setDate(monday.getDate() + i);
+        
+        const jsDayIndex = day.getDay(); 
+        const displayIndex = (jsDayIndex + 6) % 7; 
+        
+        const dayNameShort = displayDayNamesShort[displayIndex]; 
+        
+        dateLabels.push(dayNameShort);
+        fullDateLabels.push(`${day.getMonth() + 1}/${day.getDate()}`); 
+    }
+
+    const dailyHours = fullDateLabels.map((dateStr, index) => {
+        const targetDate = new Date(monday);
+        targetDate.setDate(monday.getDate() + index); 
+        
+        const startOfTargetDay = new Date(targetDate);
+        startOfTargetDay.setHours(0, 0, 0, 0);
+
+        const endOfTargetDay = new Date(targetDate);
+        endOfTargetDay.setDate(endOfTargetDay.getDate() + 1); 
+        endOfTargetDay.setHours(0, 0, 0, 0);
+
+        const dailyUserLogs = filteredLogs.value
+            .filter(log => log.card_id == currentUserId)
+            .filter(log => {
+                const logDate = parseLogTime(log.time);
+                if (!logDate) return false;
+                return logDate >= startOfTargetDay && logDate < endOfTargetDay;
+            });
+            
+        const totalHours = calculateWorkDuration(dailyUserLogs);
+        
+        return totalHours > 0 ? parseFloat(totalHours.toFixed(2)) : 0;
+    });
+
+
+    const primaryColor = '#948979'; 
+    
+    return {
+        labels: dateLabels, 
+        datasets: [{
+            label: `Ledolgozott órák`, 
+            data: dailyHours, 
+            backgroundColor: primaryColor,
+            borderColor: primaryColor,
+            borderWidth: 1,
+            borderRadius: 5,
+            fullDateLabels: fullDateLabels 
+        }]
     };
 });
 
@@ -276,60 +260,59 @@ const initializeChart = () => {
     const data = weeklyChartData.value;
 
     chartInstance = new Chart(ctx, {
-        type: 'bar', // Bar chart típus
+        type: 'bar', 
         data: data,
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            indexAxis: 'x', // X tengelyen a napok (oszlopdiagram, ami vertikálisan mutatja az időt)
+            // EZ A RÉSZ GONDOSKODIK A HELYRŐL A FELIRATOKNAK
+            layout: {
+                 padding: {
+                    bottom: 20 // Plusz hely alul a feliratoknak
+                 }
+            },
             scales: {
-                // Y tengely: A nap 24 órája (0:00-tól 24:00-ig)
                 y: {
                     min: 0,
-                    max: 24,
+                    max: 12, 
+                    stacked: false, 
                     title: {
                         display: true,
-                        text: 'A Nap Órái',
+                        text: 'Ledolgozott Órák',
                         color: '#DFD0B8'
                     },
-                    // Az idő tengely fordított, hogy 0:00 legyen felül (mint az órarendeken)
-                    reverse: true,
                     grid: { color: 'rgba(223, 208, 184, 0.1)' },
                     ticks: { 
                         color: '#DFD0B8', 
-                        stepSize: 1, // Óránkénti jelölés
-                        callback: function(value) {
-                             // Óra + :00 formátum
-                            return `${Math.floor(value).toString().padStart(2, '0')}:00`; 
-                        }
+                        stepSize: 1 
                     }
                 },
-                // X tengely: A napok kategóriái
                 x: {
+                    stacked: false, 
                     grid: { color: 'rgba(223, 208, 184, 0.1)' },
                     ticks: { color: '#DFD0B8' }
                 }
             },
             plugins: {
-                legend: { display: false }, // Nincs szükség jelmagyarázatra, csak 1 adatsor van
+                legend: { 
+                    display: false, 
+                    labels: { color: '#DFD0B8' } 
+                }, 
                 tooltip: { 
                     backgroundColor: '#222831', 
                     titleColor: '#DFD0B8', 
                     bodyColor: '#DFD0B8',
                     callbacks: {
-                        // Tooltip testreszabása: Munkaidő blokk [kezdőóra:végóra]
-                        label: function(context) {
-                            const range = context.parsed._custom; // A range bar értéke [start, end]
-                            if (range && Array.isArray(range) && range.length === 2) {
-                                const startH = Math.floor(range[0]).toString().padStart(2, '0');
-                                const startM = Math.round((range[0] % 1) * 60).toString().padStart(2, '0');
-                                
-                                const endH = Math.floor(range[1]).toString().padStart(2, '0');
-                                const endM = Math.round((range[1] % 1) * 60).toString().padStart(2, '0');
-
-                                return `Munkaidő: ${startH}:${startM} - ${endH}:${endM}`;
+                        title: function(context) {
+                            if (context.length > 0) {
+                                return context[0].dataset.fullDateLabels[context[0].dataIndex] + ' - ' + context[0].label; 
                             }
-                            return 'Nincs adat';
+                            return '';
+                        },
+                        label: function(context) {
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y.toFixed(1); 
+                            return `${label}: ${value} óra`;
                         }
                     }
                 }
@@ -339,6 +322,10 @@ const initializeChart = () => {
 };
 
 onMounted(() => {
+    watch(weeklyChartData, () => {
+        initializeChart();
+    }, { immediate: true }); 
+    
     nextTick(() => {
         initializeChart();
     });
@@ -346,7 +333,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* A CSS stílusok változatlanok maradnak */
+/* --- FŐ ELRENDEZÉS STÍLUSOK (Változatlanul hagyva, kivéve a chart-card height-et) --- */
 .layout-dark { 
     display: flex; 
     min-height: 100vh;
@@ -415,8 +402,9 @@ onMounted(() => {
     color: #948979; 
 }
 
+/* MEGNYÚJTVA 450px-re, hogy legyen hely a feliratnak! */
 .chart-card {
-    height: 400px; 
+    height: 450px; 
     position: relative;
     padding: 2rem;
 }

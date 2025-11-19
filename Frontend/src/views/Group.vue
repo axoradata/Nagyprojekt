@@ -1,6 +1,6 @@
 <template>
   <div class="page-container-dark">
-    <div class="page-content-box" style="width: 500px;">
+    <div class="page-content-box">
       
       <h2 class="section-title">Csoportok Kezelése</h2>
       
@@ -12,31 +12,50 @@
         <i class="bi bi-plus-circle-fill me-2"></i> Új Csoport Hozzáadása
       </button>
 
-      <div v-for="g in reactiveGroups" :key="g.id" class="group-card-dark">
-        <div class="d-flex justify-content-between align-items-start">
-          <h3>{{ g.name }}</h3>
+      <div class="group-grid">
+        <div v-for="g in reactiveGroups" :key="g.id" class="group-card-grid">
           
-          <button 
-            class="btn btn-sm delete-btn" 
-            @click="deleteGroup(g.id)"
-            title="Csoport törlése"
-          >
-            <i class="bi bi-trash-fill"></i>
-          </button>
+          <div class="card-header-flex">
+            <h4 class="group-name">{{ g.name }}</h4>
+            
+            <button 
+              class="btn btn-sm delete-btn" 
+              @click="deleteGroup(g.id)"
+              title="Csoport törlése"
+            >
+              <i class="bi bi-trash-fill"></i>
+            </button>
+          </div>
+          
+          <div class="card-body-content">
+            <div class="info-row leader-info">
+              <i class="bi bi-person-badge-fill me-2"></i> Vezető: 
+              <strong class="leader-name">{{ getLeaderName(g.leader_id) }}</strong>
+            </div>
+            
+            <div class="info-row member-count-info">
+              <i class="bi bi-people-fill me-2"></i> Tagok száma: 
+              <span class="member-count">{{ g.members.length }}</span>
+            </div>
+
+            <hr class="card-divider">
+
+            <div class="members-detail">
+              <p class="mb-1 fw-bold">Tagok listája:</p>
+              <ul class="list-unstyled member-list">
+                <li v-for="memberId in g.members" :key="memberId">
+                  <i class="bi bi-person-fill me-1"></i> {{ getUserName(memberId) }}
+                </li>
+                <li v-if="g.members.length === 0">Nincs tag</li>
+              </ul>
+            </div>
+
+          </div>
         </div>
-        
-        <p class="leader-info">Leader: <strong>{{ getLeaderName(g.leader_id) }}</strong></p>
-        <p class="mt-3 mb-1">Tagok:</p>
-        <ul class="list-unstyled member-list">
-          <li v-for="memberId in g.members" :key="memberId">
-            <i class="bi bi-person-fill me-1"></i> {{ getUserName(memberId) }}
-          </li>
-          <li v-if="g.members.length === 0">Nincs tag</li>
-        </ul>
       </div>
 
-      <div v-if="reactiveGroups.length === 0" class="text-center mt-4 p-3 no-groups-message">
-          Nincsenek létrehozott csoportok.
+      <div v-if="reactiveGroups.length === 0" class="text-center mt-5 p-4 no-groups-message">
+          <i class="bi bi-info-circle-fill me-2"></i> Nincsenek létrehozott csoportok.
       </div>
 
     </div>
@@ -77,11 +96,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { groups, users } from '../data' // Feltételezve, hogy a 'groups' és 'users' innen importálható
+import { ref } from 'vue'
+// Feltételezzük, hogy a users és groups adatok innen jönnek
+import { groups, users } from '../data' 
 
-// --- Reaktivitás és Funkciók ---
-// Deep copy és ref használata a groups tömbön a CRUD műveletek szimulálásához
 const reactiveGroups = ref(JSON.parse(JSON.stringify(groups)))
 const newGroupName = ref('')
 const newGroupLeaderId = ref('')
@@ -103,31 +121,29 @@ const deleteGroup = (id) => {
 
 const addNewGroup = () => {
   if (newGroupName.value && newGroupLeaderId.value) {
-    const newId = Math.max(...reactiveGroups.value.map(g => g.id), 0) + 1
+    // Győződjünk meg arról, hogy a users-ből származó ID-k számok
+    const maxId = reactiveGroups.value.length > 0 
+                  ? Math.max(...reactiveGroups.value.map(g => g.id))
+                  : 0
+    const newId = maxId + 1
     
     const newGroup = {
       id: newId,
       name: newGroupName.value,
-      leader_id: newGroupLeaderId.value,
+      leader_id: parseInt(newGroupLeaderId.value), // Ensure it's a number if IDs are numeric
       members: [],
     }
 
     reactiveGroups.value.push(newGroup)
 
-    // Reset űrlap és modal bezárása (feltételezve, hogy a Bootstrap elérhető)
     newGroupName.value = ''
     newGroupLeaderId.value = ''
     
-    // Manuális bezárás (a Bootstrap JS-t feltételezi)
+    // Bootstrap Modal manuális bezárása
     const modalElement = document.getElementById('addGroupModal')
-    if (modalElement) {
-        // Ellenőrzés, hogy a Bootstrap JS importálva van-e
-        const bootstrapModal = bootstrap.Modal.getInstance(modalElement)
-        if (bootstrapModal) {
-            bootstrapModal.hide()
-        } else {
-            console.warn("Bootstrap JS Modal objektum nem található. A Modalt manuálisan kell bezárni.")
-        }
+    if (modalElement && window.bootstrap) {
+        const bootstrapModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement)
+        bootstrapModal.hide()
     }
   }
 }
@@ -140,7 +156,7 @@ const addNewGroup = () => {
   display: flex;
   justify-content: center;
   padding: 30px; 
-  min-height: 100%; 
+  min-height: 100vh; 
   width: 100%; 
 }
 
@@ -149,6 +165,11 @@ const addNewGroup = () => {
   color: #DFD0B8; 
   padding: 2rem;
   border-radius: 16px;
+  
+  /* EGYSÉGES SZÉLESSÉG */
+  width: 900px; 
+  max-width: 95%; 
+  
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
@@ -157,39 +178,93 @@ const addNewGroup = () => {
     border-bottom: 2px solid #948979;
     padding-bottom: 0.5rem;
     margin-bottom: 1.5rem;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
+}
+
+/* --- RÁCS ELRENDEZÉS a kártyákhoz (Mint a Users.vue-ban) --- */
+.group-grid {
+    display: grid;
+    /* Automatikus tördelés: minimum 280px széles oszlopok */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem; 
 }
 
 /* --- CSOPORTKÁRTYA STÍLUSOK --- */
-.group-card-dark {
-  background-color: #222831; /* Legsötétebb háttér, kontraszt a listaboxhoz */
+.group-card-grid {
+  background-color: #222831; 
   color: #DFD0B8; 
   padding: 1rem;
   border-radius: 12px;
-  margin-bottom: 1rem;
-  border: 1px solid #948979; /* Vékony kiemelő keret */
+  border: 1px solid #484f59; /* Enyhe szegély */
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.group-card-dark h3 {
+.group-card-grid:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+}
+
+.card-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #393E46;
+    padding-bottom: 0.5rem;
+}
+
+.group-name {
   color: #DFD0B8;
-  margin-top: 0;
-  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.card-body-content {
+    padding-top: 0.5rem;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
 }
 
 .leader-info strong {
-    color: #948979; /* Leader nevének kiemelése */
+    color: #948979; /* Kiemelő szín */
+    font-weight: 600;
+}
+
+.member-count {
+    font-weight: 600;
+    color: #DFD0B8;
+}
+
+.card-divider {
+    border-top: 1px solid #393E46;
+    margin: 1rem 0;
+    opacity: 1;
+}
+
+/* Tagok listája a kártyán belül */
+.member-list {
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+    font-size: 0.9rem;
+    max-height: 90px;
+    overflow-y: auto;
 }
 
 .member-list li {
-    padding-left: 0.5rem;
-    line-height: 1.5;
+    line-height: 1.4;
+    color: #b5ac9d;
 }
 
 /* Törlés Gomb Stílusok */
 .delete-btn {
     background: none;
     border: none;
-    color: #D63031; /* Piros a veszély jelzésére */
+    color: #D63031; 
     padding: 0;
     font-size: 1.2rem;
     transition: color 0.2s;
@@ -198,55 +273,52 @@ const addNewGroup = () => {
     color: #FF6B6B;
 }
 
-.no-groups-message {
-    background-color: #333940;
-    color: #DFD0B8;
-    border-radius: 8px;
-    border: 1px dashed #948979;
+/* --- MODAL ÉS FORM STÍLUSOK (Megtartva) --- */
+.custom-btn-primary {
+  background-color: #948979;
+  border-color: #948979;
+  color: white;
+  font-weight: 600;
+}
+.custom-btn-primary:hover {
+  background-color: #7d7264;
+  border-color: #7d7264;
 }
 
-/* --- MODÁLIS ABLAK STÍLUSOK (A meglévő stílusok kiterjesztése) --- */
-.modal-dark {
+.modal-content.modal-dark {
     background-color: #393E46;
     color: #DFD0B8;
 }
 
-.modal-dark-header {
-    border-bottom: 1px solid #222831;
+.modal-header.modal-dark-header {
+    border-bottom: 1px solid #484f59;
 }
 
-.modal-dark-footer {
-    border-top: 1px solid #222831;
+.modal-footer.modal-dark-footer {
+    border-top: 1px solid #484f59;
+}
+
+.form-control.dark-input, 
+.form-select.dark-input {
+    background-color: #222831;
+    border-color: #484f59;
+    color: #DFD0B8;
+}
+.form-control.dark-input:focus,
+.form-select.dark-input:focus {
+    border-color: #948979;
+    box-shadow: 0 0 0 0.25rem rgba(148, 137, 121, 0.25); 
 }
 
 .btn-close-white {
-    filter: invert(1); /* Fehérré teszi a zárt gombot sötét háttéren */
+    filter: invert(1);
 }
 
-/* Input és Gomb stílusok a korábbi komponensekből */
-.custom-btn-primary {
-    background-color: #948979;
-    border-color: #948979;
-    color: white;
-    font-weight: 600;
-}
-.custom-btn-primary:hover {
-    background-color: #7d7264;
-    border-color: #7d7264;
-    color: white;
-}
-
-.dark-input {
+.no-groups-message {
     background-color: #222831;
-    border-color: #555;
-    color: #DFD0B8;
-}
-.dark-input:focus {
-    border-color: #948979;
-    box-shadow: 0 0 0 0.25rem rgba(148, 137, 121, 0.25);
-}
-
-.light-text {
-    color: #DFD0B8 !important;
+    border-radius: 8px;
+    border: 1px solid #484f59;
+    color: #948979;
+    font-size: 1.1rem;
 }
 </style>
