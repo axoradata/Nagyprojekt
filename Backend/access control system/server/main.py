@@ -51,4 +51,6 @@ async def read_item(item_id: int, q: Union[str, None] = None):
 
 
 #fastapi dev main.py
+#python -m pytest -v
+#ipconfig /all
 #1GYdF0S00x01GVed2918hui4xyxd7Dxi6b7SxCSc01xtaBVYc4Pvc0y005bxfxm2
