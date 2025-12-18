@@ -1,54 +1,48 @@
 <template>
-  <div class="layout-dark">
-    <main class="main-content-dark">
-      <h1 class="page-title">Üdv, {{ user.username }}!</h1>
+  <div class="main-content">
+    <h1 class="page-title">Üdv, {{ user.username }}!</h1>
 
-      <div class="stats-grid">
-        
-        <div class="stat-card">
-          <p class="stat-value">{{ filteredLogs.length }}</p>
-          <p class="stat-label">Összes esemény (szerepkör szerint)</p>
-        </div>
-        
-        <div class="stat-card">
-          <p class="stat-value accent-text">{{ usersInToday }}</p>
-          <p class="stat-label">Aktuálisan bent lévők száma</p>
-        </div>
-
-        <div v-if="user.role === 'leader'" class="stat-card">
-          <p class="stat-value accent-text">{{ supervisedUsersCount }}</p>
-          <p class="stat-label">Felügyelt Tagok Összesen</p>
-        </div>
-
-        <div v-if="user.role === 'worker'" class="stat-card">
-          <p class="stat-value accent-text">{{ myWeeklyWorkHours }} h</p>
-          <p class="stat-label">Saját ledolgozott órák a héten</p>
-        </div>
-
+    <div class="stats-grid">
+      <div class="stat-card">
+        <p class="stat-value">{{ filteredLogs.length }}</p>
+        <p class="stat-label">Összes esemény (szerepkör szerint)</p>
+      </div>
+      
+      <div class="stat-card">
+        <p class="stat-value accent-text">{{ usersInToday }}</p>
+        <p class="stat-label">Aktuálisan bent lévők száma</p>
       </div>
 
-      <div class="card-dark chart-card">
-          <h2>Napi Ledolgozott Munkaidő (Hétfő-Vasárnap)</h2>
-          <div style="height: 100%; width: 100%;">
-            <canvas id="weeklyLogChart"></canvas>
-          </div>
+      <div v-if="user.role === 'leader'" class="stat-card">
+        <p class="stat-value accent-text">{{ supervisedUsersCount }}</p>
+        <p class="stat-label">Felügyelt Tagok Összesen</p>
       </div>
 
-
-      <div class="card-dark log-preview">
-        <h2>Legutóbbi események (Top 5)</h2>
-        <ul class="log-list">
-          <li v-for="log in recentLogs" :key="log.id">
-            <span :class="log.log_IN ? 'log-in' : 'log-out'">
-                <i :class="log.log_IN ? 'bi bi-box-arrow-in-right' : 'bi bi-box-arrow-left'"></i>
-            </span>
-            <strong>{{ getUsername(log.card_id) }}</strong> - {{ log.time }}
-          </li>
-        </ul>
-        <p v-if="recentLogs.length === 0" class="no-data">Nincs megjeleníthető esemény.</p>
+      <div v-if="user.role === 'worker'" class="stat-card">
+        <p class="stat-value accent-text">{{ myWeeklyWorkHours }} h</p>
+        <p class="stat-label">Saját ledolgozott órák a héten</p>
       </div>
+    </div>
 
-    </main>
+    <div class="card-custom chart-card">
+        <h2>Napi Ledolgozott Munkaidő (Hétfő-Vasárnap)</h2>
+        <div style="height: 100%; width: 100%;">
+          <canvas id="weeklyLogChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card-custom log-preview">
+      <h2>Legutóbbi események (Top 5)</h2>
+      <ul class="log-list">
+        <li v-for="log in recentLogs" :key="log.id">
+          <span :class="log.log_IN ? 'log-in' : 'log-out'">
+              <i :class="log.log_IN ? 'bi bi-box-arrow-in-right' : 'bi bi-box-arrow-left'"></i>
+          </span>
+          <strong>{{ getUsername(log.card_id) }}</strong> - {{ log.time }}
+        </li>
+      </ul>
+      <p v-if="recentLogs.length === 0" class="no-data">Nincs megjeleníthető esemény.</p>
+    </div>
   </div>
 </template>
 
@@ -60,8 +54,7 @@ import Chart from 'chart.js/auto';
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}')) 
 let chartInstance = null; 
 
-// --- DÁTUM SEGÉDFÜGGVÉNYEK ---
-
+// --- DÁTUM SEGÉDFÜGGVÉNYEK ÉS LOGIKA (Változatlan) ---
 const parseLogTime = (logTimeString) => {
     if (!logTimeString) return null;
     const parsable = logTimeString.replace(/(\d{4})\. (\d{2})\. (\d{2})\./, '$1/$2/$3').trim();
@@ -77,29 +70,19 @@ const startOfDay = (date) => {
 const calculateWorkDuration = (logData) => {
     let totalMinutes = 0;
     let clockInTime = null;
-
     const sortedLogs = [...logData].sort((a, b) => parseLogTime(a.time) - parseLogTime(b.time));
-
     sortedLogs.forEach(log => {
         const currentTime = parseLogTime(log.time);
         if (!currentTime) return;
-
-        if (log.log_IN) {
-            clockInTime = currentTime;
-        } else if (clockInTime) {
+        if (log.log_IN) { clockInTime = currentTime; } 
+        else if (clockInTime) {
             const durationMs = currentTime - clockInTime;
-            if (durationMs > 0) {
-                totalMinutes += durationMs / (1000 * 60); // ms -> perc
-            }
+            if (durationMs > 0) { totalMinutes += durationMs / (1000 * 60); }
             clockInTime = null; 
         }
     });
-
-    return totalMinutes / 60; // Perc -> Óra
+    return totalMinutes / 60;
 };
-
-
-// --- EGYÉB SZÁMÍTÁSOK ---
 
 const getUsername = (card_id) => {
   const u = users.find(u => u.card_id == card_id)
@@ -109,212 +92,131 @@ const getUsername = (card_id) => {
 const filteredLogs = computed(() => {
   const userCardId = user.value.card_id; 
   const userRole = user.value.role;
-
   return logins.filter(log => {
     if(userRole === 'admin') return true
-    
     if(userRole === 'leader') {
       const supervisedMembersCardIds = groups
         .filter(g => g.leader_id === user.value.id)
         .flatMap(g => g.members)
         .map(memberId => users.find(u => u.id === memberId)?.card_id)
         .filter(id => id);
-      
       return supervisedMembersCardIds.includes(log.card_id) || log.card_id == userCardId;
     }
-    
-    if(userRole === 'worker') {
-      return log.card_id == userCardId
-    }
-    return false
+    return userRole === 'worker' ? log.card_id == userCardId : false
   })
 })
 
-const recentLogs = computed(() => {
-    return [...filteredLogs.value].reverse().slice(0, 5); 
-});
-
+const recentLogs = computed(() => [...filteredLogs.value].reverse().slice(0, 5));
 const usersInToday = computed(() => {
     const statuses = {};
-    filteredLogs.value.forEach(log => {
-        statuses[log.card_id] = log.log_IN; 
-    });
+    filteredLogs.value.forEach(log => { statuses[log.card_id] = log.log_IN; });
     return Object.keys(statuses).filter(cardId => statuses[cardId] === true).length;
 });
-
 const supervisedUsersCount = computed(() => {
     if (user.value.role !== 'leader') return 0;
-    const members = groups
-        .filter(g => g.leader_id === user.value.id)
-        .flatMap(g => g.members);
+    const members = groups.filter(g => g.leader_id === user.value.id).flatMap(g => g.members);
     return new Set(members).size;
 });
-
 const myWeeklyWorkHours = computed(() => {
     if (user.value.role !== 'worker') return 0;
-    
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
     const relevantLogs = filteredLogs.value.filter(log => {
         const logDate = parseLogTime(log.time);
-        if (!logDate) return false;
-        return logDate > oneWeekAgo; 
+        return logDate && logDate > oneWeekAgo && log.card_id == user.value.card_id;
     });
-
-    const ownLogs = relevantLogs.filter(log => log.card_id == user.value.card_id);
-    const totalHours = calculateWorkDuration(ownLogs);
-
-    return totalHours.toFixed(1);
+    return calculateWorkDuration(relevantLogs).toFixed(1);
 });
 
-
-// 6. Heti Munkaidő Összegzés Adatok
 const weeklyChartData = computed(() => {
-    
     const currentUserId = user.value.card_id; 
-    
-    if (!currentUserId) {
-        return { labels: [], datasets: [] };
-    }
+    if (!currentUserId) return { labels: [], datasets: [] };
 
     const today = startOfDay(new Date());
     const displayDayNamesShort = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V']; 
-    
     const dateLabels = []; 
     const fullDateLabels = []; 
 
     const currentDayOfWeek = today.getDay(); 
     const daysToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1; 
-
     const monday = new Date(today);
     monday.setDate(today.getDate() - daysToMonday);
 
     for (let i = 0; i < 7; i++) {
         const day = new Date(monday);
         day.setDate(monday.getDate() + i);
-        
-        const jsDayIndex = day.getDay(); 
-        const displayIndex = (jsDayIndex + 6) % 7; 
-        
-        const dayNameShort = displayDayNamesShort[displayIndex]; 
-        
-        dateLabels.push(dayNameShort);
+        dateLabels.push(displayDayNamesShort[i]);
         fullDateLabels.push(`${day.getMonth() + 1}/${day.getDate()}`); 
     }
 
-    const dailyHours = fullDateLabels.map((dateStr, index) => {
+    const dailyHours = fullDateLabels.map((_, index) => {
         const targetDate = new Date(monday);
         targetDate.setDate(monday.getDate() + index); 
-        
-        const startOfTargetDay = new Date(targetDate);
-        startOfTargetDay.setHours(0, 0, 0, 0);
-
-        const endOfTargetDay = new Date(targetDate);
-        endOfTargetDay.setDate(endOfTargetDay.getDate() + 1); 
-        endOfTargetDay.setHours(0, 0, 0, 0);
-
-        const dailyUserLogs = filteredLogs.value
-            .filter(log => log.card_id == currentUserId)
-            .filter(log => {
-                const logDate = parseLogTime(log.time);
-                if (!logDate) return false;
-                return logDate >= startOfTargetDay && logDate < endOfTargetDay;
-            });
-            
-        const totalHours = calculateWorkDuration(dailyUserLogs);
-        
-        return totalHours > 0 ? parseFloat(totalHours.toFixed(2)) : 0;
+        const start = new Date(targetDate).setHours(0,0,0,0);
+        const end = new Date(targetDate).setDate(targetDate.getDate() + 1);
+        const dailyUserLogs = filteredLogs.value.filter(log => {
+            const d = parseLogTime(log.time);
+            return log.card_id == currentUserId && d >= start && d < end;
+        });
+        return parseFloat(calculateWorkDuration(dailyUserLogs).toFixed(2));
     });
 
-
-    const primaryColor = '#948979'; 
-    
     return {
         labels: dateLabels, 
         datasets: [{
             label: `Ledolgozott órák`, 
             data: dailyHours, 
-            backgroundColor: primaryColor,
-            borderColor: primaryColor,
-            borderWidth: 1,
+            backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#948979',
             borderRadius: 5,
             fullDateLabels: fullDateLabels 
         }]
     };
 });
 
+// --- DINAMIKUS CHART.JS SZÍNEK ---
+const getChartColors = () => {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    return {
+        text: isLight ? '#2d3436' : '#DFD0B8',
+        grid: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(223, 208, 184, 0.1)',
+        tooltipBg: isLight ? '#ffffff' : '#222831'
+    };
+};
 
-// --- CHART.JS INICIALIZÁLÁS ---
 const initializeChart = () => {
-    if (chartInstance) {
-        chartInstance.destroy();
-    }
-    
-    const canvasElement = document.getElementById('weeklyLogChart');
-    if (!canvasElement) {
-        return; 
-    }
-    
-    const ctx = canvasElement.getContext('2d');
-    const data = weeklyChartData.value;
+    if (chartInstance) chartInstance.destroy();
+    const canvas = document.getElementById('weeklyLogChart');
+    if (!canvas) return;
 
-    chartInstance = new Chart(ctx, {
+    const colors = getChartColors();
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+
+    chartInstance = new Chart(canvas.getContext('2d'), {
         type: 'bar', 
-        data: data,
+        data: weeklyChartData.value,
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            // EZ A RÉSZ GONDOSKODIK A HELYRŐL A FELIRATOKNAK
-            layout: {
-                 padding: {
-                    bottom: 20 // Plusz hely alul a feliratoknak
-                 }
-            },
             scales: {
-                y: {
-                    min: 0,
-                    max: 12, 
-                    stacked: false, 
-                    title: {
-                        display: true,
-                        text: 'Ledolgozott Órák',
-                        color: '#DFD0B8'
-                    },
-                    grid: { color: 'rgba(223, 208, 184, 0.1)' },
-                    ticks: { 
-                        color: '#DFD0B8', 
-                        stepSize: 1 
-                    }
+                y: { 
+                    beginAtZero: true, max: 12,
+                    ticks: { color: colors.text },
+                    grid: { color: colors.grid },
+                    title: { display: true, text: 'Órák', color: colors.text }
                 },
-                x: {
-                    stacked: false, 
-                    grid: { color: 'rgba(223, 208, 184, 0.1)' },
-                    ticks: { color: '#DFD0B8' }
+                x: { 
+                    ticks: { color: colors.text },
+                    grid: { display: false }
                 }
             },
             plugins: {
-                legend: { 
-                    display: false, 
-                    labels: { color: '#DFD0B8' } 
-                }, 
-                tooltip: { 
-                    backgroundColor: '#222831', 
-                    titleColor: '#DFD0B8', 
-                    bodyColor: '#DFD0B8',
-                    callbacks: {
-                        title: function(context) {
-                            if (context.length > 0) {
-                                return context[0].dataset.fullDateLabels[context[0].dataIndex] + ' - ' + context[0].label; 
-                            }
-                            return '';
-                        },
-                        label: function(context) {
-                            const label = context.dataset.label || '';
-                            const value = context.parsed.y.toFixed(1); 
-                            return `${label}: ${value} óra`;
-                        }
-                    }
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: colors.tooltipBg,
+                    titleColor: accentColor,
+                    bodyColor: colors.text,
+                    borderColor: accentColor,
+                    borderWidth: 1
                 }
             }
         }
@@ -322,51 +224,40 @@ const initializeChart = () => {
 };
 
 onMounted(() => {
-    watch(weeklyChartData, () => {
-        initializeChart();
-    }, { immediate: true }); 
-    
-    nextTick(() => {
-        initializeChart();
-    });
+    initializeChart();
+    // Figyeljük, ha a téma változik, rajzoljuk újra a chartot
+    const observer = new MutationObserver(() => initializeChart());
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 });
 </script>
 
 <style scoped>
-/* --- FŐ ELRENDEZÉS STÍLUSOK (Változatlanul hagyva, kivéve a chart-card height-et) --- */
-.layout-dark { 
-    display: flex; 
-    min-height: 100vh;
-}
-
-.main-content-dark { 
-    flex: 1; 
+.main-content { 
     padding: 2rem; 
-    background-color: #222831; 
-    color: #DFD0B8; 
+    transition: all 0.3s ease;
 }
 
 .page-title {
-    color: #DFD0B8;
-    border-bottom: 2px solid #948979;
+    color: var(--text-main);
+    border-bottom: 2px solid var(--accent);
     padding-bottom: 0.5rem;
     margin-bottom: 2rem;
-    font-size: 1.8rem;
 }
 
-.card-dark {
-    background-color: #393E46; 
+.card-custom {
+    background-color: var(--bg-card); 
     padding: 1.5rem; 
     border-radius: 12px; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+    border: 1px solid var(--border-color);
     margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
 }
 
-.card-dark h2 {
-    color: #DFD0B8;
+.card-custom h2 {
+    color: var(--text-main);
     font-size: 1.3rem;
     margin-bottom: 1rem;
-    border-bottom: 1px dashed #555;
+    border-bottom: 1px dashed var(--border-color);
     padding-bottom: 0.5rem;
 }
 
@@ -378,71 +269,43 @@ onMounted(() => {
 }
 
 .stat-card { 
-    background-color: #393E46; 
+    background-color: var(--bg-card); 
     padding: 1.5rem; 
     border-radius: 12px; 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    border-left: 5px solid #948979; 
+    border-left: 5px solid var(--accent);
+    border-top: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.3s ease;
 }
 
 .stat-value {
     font-size: 2.2rem;
     font-weight: bold;
-    color: #DFD0B8;
+    color: var(--text-main);
     margin-bottom: 0.3rem;
 }
 
 .stat-label {
     font-size: 0.9rem;
-    color: #948979; 
+    color: var(--accent); 
     margin: 0;
 }
 
-.accent-text {
-    color: #948979; 
-}
+.accent-text { color: var(--accent); }
 
-/* MEGNYÚJTVA 450px-re, hogy legyen hely a feliratnak! */
-.chart-card {
-    height: 450px; 
-    position: relative;
-    padding: 2rem;
-}
+.chart-card { height: 400px; padding: 2rem; }
 
-.log-list { 
-    list-style: none; 
-    padding: 0; 
-    margin: 0;
-}
-
+.log-list { list-style: none; padding: 0; }
 .log-list li { 
     padding: 0.75rem 0; 
-    border-bottom: 1px solid #484f59; 
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    border-bottom: 1px solid var(--border-color); 
+    display: flex; align-items: center; gap: 0.5rem;
+    color: var(--text-main);
 }
-.log-list li:last-child {
-    border-bottom: none;
-}
+.log-list li:last-child { border-bottom: none; }
 
-.log-list strong {
-    color: #DFD0B8;
-}
-
-.log-in {
-    color: #85b066; 
-    font-weight: bold;
-}
-
-.log-out {
-    color: #d63031; 
-    font-weight: bold;
-}
-
-.no-data {
-    color: #948979;
-    font-style: italic;
-    padding-top: 1rem;
-}
+.log-in { color: #2ecc71; font-weight: bold; }
+.log-out { color: #e74c3c; font-weight: bold; }
+.no-data { color: var(--accent); font-style: italic; }
 </style>

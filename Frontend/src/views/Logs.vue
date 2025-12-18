@@ -1,6 +1,7 @@
 <template>
-  <div class="page-container-dark">
+  <div class="page-container">
     <div class="page-content-box">
+      <h2 class="section-title">Eseménynapló</h2>
       <LogTable />
     </div>
   </div>
@@ -11,30 +12,40 @@ import LogTable from '../components/LogTable.vue'
 </script>
 
 <style scoped>
-.page-container-dark {
-  /* Alap háttér, ami a main elemen belül van */
-  background-color: #222831; 
+.page-container {
+  /* Fix #222831 helyett a fő háttér */
+  background-color: var(--bg-main); 
   display: flex;
   justify-content: center;
-  
-  /* Hely a felső és alsó görgetéshez, ha szükséges */
   padding: 30px; 
-  min-height: 100%; 
+  min-height: 100vh; 
   width: 100%; 
+  transition: background-color 0.3s ease;
 }
 
 .page-content-box {
-  /* Kártya/Konténer háttér (világosabb sötét) */
-  background-color: #393E46; 
-  color: #DFD0B8; 
+  /* Fix #393E46 helyett a kártya háttér */
+  background-color: var(--bg-card); 
+  color: var(--text-main); 
   
   padding: 2rem;
   border-radius: 16px;
   
   /* Szélesebb konténer a táblázatoknak */
-  width: 900px; 
+  width: 1000px; 
   max-width: 95%; 
   
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  /* Finomabb keret és dinamikus árnyék */
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.section-title {
+    color: var(--text-main);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
 }
 </style>

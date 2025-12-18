@@ -1,9 +1,11 @@
 <template>
-  <div class="user-card-dark">
-    <h3>{{ user.username }}</h3>
-    <p>Szerepkör: <span class="role-text">{{ user.role }}</span></p>
-    <p>Email: {{ user.email }}</p>
-    <p>Regisztrálva: {{ user.created_at }}</p>
+  <div class="user-card">
+    <h3 class="user-title">{{ user.username }}</h3>
+    <div class="user-info">
+      <p>Szerepkör: <span class="role-text">{{ user.role }}</span></p>
+      <p>Email: <span class="info-value">{{ user.email }}</span></p>
+      <p>Regisztrálva: <span class="info-value">{{ user.created_at }}</span></p>
+    </div>
   </div>
 </template>
 
@@ -16,30 +18,51 @@ const props = defineProps({
 </script>
 
 <style scoped>
-.user-card-dark {
-  background-color: #222831; /* Legsötétebb háttér, kontraszt a listaboxhoz */
-  color: #DFD0B8; /* Világos szöveg */
-  padding: 1rem;
+.user-card {
+  /* Fix #222831 helyett a belső háttér változó */
+  background-color: var(--bg-inner); 
+  color: var(--text-main); 
+  padding: 1.25rem;
   border-radius: 12px;
   margin: 1rem 0;
-  border: 1px solid #948979; /* Vékony kiemelő keret */
+  /* Az accent színünket használjuk a kerethez */
+  border: 1px solid var(--accent);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-.user-card-dark h3 {
-  color: #DFD0B8;
+.user-title {
+  color: var(--text-main);
   margin-top: 0;
-  border-bottom: 1px dashed #393E46; /* Finomabb elválasztóvonal */
+  /* Fix #393E46 helyett a téma szerinti szegély */
+  border-bottom: 1px dashed var(--border-color); 
   padding-bottom: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
 }
 
-.user-card-dark p {
-  margin-bottom: 0.3rem;
+.user-info p {
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  opacity: 0.9;
+}
+
+.info-value {
+    color: var(--text-main);
 }
 
 .role-text {
-  /* Kiemeljük a szerepkört */
   font-weight: bold; 
-  color: #948979; 
+  /* Kiemelő szín sötétben bézs, világosban sötétszürke */
+  color: var(--accent); 
+  text-transform: capitalize;
+}
+
+/* Hover effektus, hogy interaktívabb legyen */
+.user-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent-hover);
 }
 </style>

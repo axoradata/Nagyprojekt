@@ -1,5 +1,5 @@
 <template>
-  <div class="page-container-dark">
+  <div class="page-container">
     <div class="page-content-box wide-box">
       <h1 class="page-title">RFID Kezelés / Felhasználók</h1>
       
@@ -7,73 +7,77 @@
         <input 
           v-model="searchTerm" 
           placeholder="Keresés: Név, Email vagy Kártya ID..." 
-          class="dark-input search-input"
+          class="custom-input search-input"
         />
         
         <form class="add-form" @submit.prevent="addUser">
-          <input v-model="newUser.username" placeholder="Felhasználónév" required class="dark-input" />
-          <input v-model="newUser.email" placeholder="Email" type="email" required class="dark-input" />
-          <input v-model="newUser.password" placeholder="Jelszó" type="password" required class="dark-input" />
-          <select v-model="newUser.role" required class="dark-input select-role">
+          <input v-model="newUser.username" placeholder="Felhasználónév" required class="custom-input" />
+          <input v-model="newUser.email" placeholder="Email" type="email" required class="custom-input" />
+          <input v-model="newUser.password" placeholder="Jelszó" type="password" required class="custom-input" />
+          <select v-model="newUser.role" required class="custom-input select-role">
             <option disabled value="">Szerep</option>
             <option value="admin">Admin</option>
             <option value="leader">Csoportvezető</option>
             <option value="worker">Dolgozó</option>
           </select>
-          <input v-model="newUser.card_id" placeholder="Kártya ID" required class="dark-input" />
-          <button type="submit" class="btn custom-btn-primary add-btn"><i class="bi bi-plus-circle me-1"></i> Hozzáadás</button>
+          <input v-model="newUser.card_id" placeholder="Kártya ID" required class="custom-input" />
+          <button type="submit" class="btn custom-btn-primary add-btn">
+            <i class="bi bi-plus-circle me-1"></i> Hozzáadás
+          </button>
         </form>
       </div>
       
-      <table class="data-table user-table">
-        <thead>
-          <tr>
-            <th>Név</th>
-            <th>Email</th>
-            <th>Szerep</th>
-            <th>Kártya ID</th>
-            <th>Műveletek</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in filteredUsers" :key="user.id">
-            <template v-if="editingId === user.id">
-              <td><input v-model="editUser.username" class="dark-input" /></td>
-              <td><input v-model="editUser.email" type="email" class="dark-input" /></td>
-              <td>
-                <select v-model="editUser.role" class="dark-input">
-                  <option value="admin">Admin</option>
-                  <option value="leader">Csoportvezető</option>
-                  <option value="worker">Dolgozó</option>
-                </select>
-              </td>
-              <td><input v-model="editUser.card_id" class="dark-input" /></td>
-              <td>
-                <button class="btn btn-sm save-btn" @click="saveEdit(user.id)">
-                  <i class="bi bi-save"></i> Mentés
-                </button>
-                <button class="btn btn-sm cancel-btn" @click="cancelEdit">
-                  <i class="bi bi-x-circle"></i> Mégsem
-                </button>
-              </td>
-            </template>
-            <template v-else>
-              <td>{{ user.username }}</td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.role }}</td>
-              <td>{{ user.card_id }}</td>
-              <td>
-                <button class="btn btn-sm edit-btn" @click="startEdit(user)">
-                  <i class="bi bi-pencil-square"></i> Módosítás
-                </button>
-                <button class="btn btn-sm delete-btn" @click="deleteUser(user.id)">
-                  <i class="bi bi-trash"></i> Törlés
-                </button>
-              </td>
-            </template>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="data-table user-table">
+          <thead>
+            <tr>
+              <th>Név</th>
+              <th>Email</th>
+              <th>Szerep</th>
+              <th>Kártya ID</th>
+              <th>Műveletek</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="user in filteredUsers" :key="user.id">
+              <template v-if="editingId === user.id">
+                <td><input v-model="editUser.username" class="custom-input table-input" /></td>
+                <td><input v-model="editUser.email" type="email" class="custom-input table-input" /></td>
+                <td>
+                  <select v-model="editUser.role" class="custom-input table-input">
+                    <option value="admin">Admin</option>
+                    <option value="leader">Csoportvezető</option>
+                    <option value="worker">Dolgozó</option>
+                  </select>
+                </td>
+                <td><input v-model="editUser.card_id" class="custom-input table-input" /></td>
+                <td class="action-cell">
+                  <button class="btn btn-sm save-btn" @click="saveEdit(user.id)">
+                    <i class="bi bi-save"></i>
+                  </button>
+                  <button class="btn btn-sm cancel-btn" @click="cancelEdit">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </td>
+              </template>
+              <template v-else>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email }}</td>
+                <td><span class="badge role-badge">{{ user.role }}</span></td>
+                <td><code>{{ user.card_id }}</code></td>
+                <td class="action-cell">
+                  <button class="btn btn-sm edit-btn" @click="startEdit(user)" title="Módosítás">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                  <button class="btn btn-sm delete-btn" @click="deleteUser(user.id)" title="Törlés">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+              </template>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
@@ -82,26 +86,21 @@
 import { ref, computed } from 'vue'
 import { users } from '../data'
 
-// --- ÁLLAPOTOK ---
-const user = JSON.parse(localStorage.getItem('user') || '{}')
-const usersList = ref([...users]) // Reaktív felhasználó lista
-const searchTerm = ref('') // Keresési feltétel
-const editingId = ref(null) // Szerkesztés alatt lévő user ID-ja
-const editUser = ref({}) // Szerkesztés alatt lévő user adatai
+const usersList = ref([...users])
+const searchTerm = ref('')
+const editingId = ref(null)
+const editUser = ref({})
 
 const newUser = ref({
   username: '',
   email: '',
-  password: '', // Jelszó kezelése a háttérben történne, itt csak a mező van
+  password: '',
   role: '',
   card_id: ''
 })
 
-// --- SZÁMÍTOTT TULAJDONSÁGOK (Keresés/Szűrés) ---
 const filteredUsers = computed(() => {
-  if (!searchTerm.value) {
-    return usersList.value
-  }
+  if (!searchTerm.value) return usersList.value
   const search = searchTerm.value.toLowerCase()
   return usersList.value.filter(u =>
     u.username.toLowerCase().includes(search) ||
@@ -110,25 +109,16 @@ const filteredUsers = computed(() => {
   )
 })
 
-// --- CRUD FÜGGVÉNYEK ---
 const addUser = () => {
   if (newUser.value.username && newUser.value.email && newUser.value.role && newUser.value.card_id) {
-    const id = usersList.value.length ? Math.max(...usersList.value.map(u => u.id)) + 1 : 1
-    const userToAdd = { id, ...newUser.value, created_at: new Date().toLocaleDateString() }
-    
-    // Először keressük meg, hogy a kártya ID létezik-e már
     const existingCard = usersList.value.some(u => u.card_id === newUser.value.card_id);
     if (existingCard) {
         alert("Ez a Kártya ID már hozzá van rendelve egy felhasználóhoz!");
         return; 
     }
-
-    usersList.value.push(userToAdd)
-    
-    // Alapállapot visszaállítása
+    const id = usersList.value.length ? Math.max(...usersList.value.map(u => u.id)) + 1 : 1
+    usersList.value.push({ id, ...newUser.value, created_at: new Date().toLocaleDateString() })
     newUser.value = { username: '', email: '', password: '', role: '', card_id: '' }
-  } else {
-      alert("Kérjük, töltse ki az összes mezőt!");
   }
 }
 
@@ -138,10 +128,8 @@ const deleteUser = (id) => {
   }
 }
 
-// --- MÓDOSÍTÁS FÜGGVÉNYEK ---
 const startEdit = (user) => {
   editingId.value = user.id
-  // Mély másolat készítése a szerkesztéshez
   editUser.value = { ...user } 
 }
 
@@ -153,188 +141,157 @@ const cancelEdit = () => {
 const saveEdit = (id) => {
   const index = usersList.value.findIndex(u => u.id === id)
   if (index !== -1) {
-    // Frissítés
     usersList.value[index] = { ...editUser.value }
-    cancelEdit() // Szerkesztés befejezése
+    cancelEdit()
   }
 }
 </script>
 
 <style scoped>
-/* --- FŐ ELRENDEZÉS ÉS HÁTTÉR --- */
-.page-container-dark {
-  background-color: #222831; 
-  display: flex;
-  justify-content: center;
-  padding: 30px; 
-  min-height: 100%; 
-  width: 100%; 
+.page-container {
+  padding: 2rem;
+  min-height: 100vh;
+  width: 100%;
+  transition: background-color 0.3s ease;
 }
 
 .page-content-box {
-  background-color: #393E46; 
-  color: #DFD0B8; 
+  background-color: var(--bg-card);
+  color: var(--text-main);
   padding: 2rem;
   border-radius: 16px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-  /* Táblázat miatt szélesebb konténer */
-  width: 1200px; 
-  max-width: 100%; 
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-title {
-    color: #DFD0B8;
-    border-bottom: 2px solid #948979;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1.5rem;
-    font-size: 1.8rem;
+  color: var(--text-main);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
 }
 
-/* --- VEZÉRLŐ ELEMEK (KERESÉS ÉS HOZZÁADÁS) --- */
 .controls-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .search-input {
-    width: 100%;
-    max-width: 400px;
-    padding: 0.7rem;
-    font-size: 1rem;
+  max-width: 400px;
 }
 
 .add-form {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  /* Kényszerítjük, hogy a gomb a végére kerüljön */
-  align-items: center; 
+  background-color: var(--bg-inner);
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
 }
 
-/* --- INPUT/SELECT ÁLTALÁNOS STÍLUSOK (SÖTÉT TÉMÁHOZ) --- */
-.dark-input {
+.custom-input {
   padding: 0.6rem 0.8rem;
-  border-radius: 6px;
-  background-color: #222831; /* Legsötétebb háttér */
-  color: #DFD0B8; /* Világos szöveg */
-  border: 1px solid #393E46; 
-  transition: 0.2s;
+  border-radius: 8px;
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
 }
 
-.dark-input:focus {
-  border-color: #948979; /* Kiemelő szín fókuszban */
-  box-shadow: 0 0 6px rgba(148, 137, 121, 0.4);
+.custom-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(148, 137, 121, 0.2);
+  outline: none;
 }
 
-.add-form input,
-.add-form select {
-    flex-grow: 1; /* Kitöltik a helyet */
+/* --- TÁBLÁZAT --- */
+.table-responsive {
+  overflow-x: auto;
 }
 
-.select-role {
-    min-width: 150px;
-}
-
-/* --- TÁBLÁZAT STÍLUSOK --- */
 .user-table {
   width: 100%;
-  border-collapse: collapse;
-  background-color: #393E46; 
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .user-table th {
-  padding: 0.8rem 1rem;
+  padding: 1rem;
+  background-color: var(--bg-inner);
+  color: var(--text-main);
+  border-bottom: 2px solid var(--accent);
   text-align: left;
-  background-color: #222831; /* Legsötétebb fejléchez */
-  color: #DFD0B8;
-  border-bottom: 2px solid #948979; /* Kiemelő színű elválasztó */
 }
 
 .user-table td {
-  padding: 0.7rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid #484f59; /* Sötétebb szürke vonal */
-  color: #DFD0B8;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
 }
 
-/* Páros sorok háttérszíne */
 .user-table tbody tr:nth-child(even) {
-    background-color: #333940; 
+  background-color: rgba(var(--accent-rgb, 148, 137, 121), 0.03);
 }
 
-/* Hover effektus */
 .user-table tbody tr:hover {
-    background-color: #484f59;
+  background-color: rgba(var(--accent-rgb, 148, 137, 121), 0.08);
 }
 
-/* --- GOMB STÍLUSOK --- */
+.role-badge {
+  background-color: var(--accent);
+  color: white;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+code {
+  color: var(--accent);
+  background-color: var(--bg-inner);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+/* --- GOMBOK --- */
 .custom-btn-primary {
-  background-color: #948979;
+  background-color: var(--accent);
   border: none;
   color: white;
-  border-radius: 6px;
-  padding: 0.6rem 1rem;
-  cursor: pointer;
-  font-weight: bold;
-  transition: 0.2s;
-}
-.custom-btn-primary:hover {
-  background-color: #7d7264;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
 }
 
-/* Műveleti gombok (Edit, Delete, Save, Cancel) */
+.action-cell {
+  display: flex;
+  gap: 0.4rem;
+}
+
 .btn-sm {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.9rem;
-    margin-left: 0.5rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: transform 0.2s;
 }
 
-.edit-btn {
-    background-color: #948979;
-    color: white;
-}
-.edit-btn:hover {
-    background-color: #7d7264;
-}
+.btn-sm:hover { transform: scale(1.1); color: white; }
 
-.delete-btn {
-    background-color: #d63031; /* Piros */
-    color: white;
-}
-.delete-btn:hover {
-    background-color: #a82425;
-}
+.edit-btn { background-color: var(--accent); color: white; }
+.delete-btn { background-color: #e74c3c; color: white; }
+.save-btn { background-color: #2ecc71; color: white; }
+.cancel-btn { background-color: #95a5a6; color: white; }
 
-.save-btn {
-    background-color: #4CAF50; /* Zöld */
-    color: white;
-    margin-left: 0; /* Ne legyen dupla margó */
+.table-input {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
 }
-.save-btn:hover {
-    background-color: #388E3C;
-}
-
-.cancel-btn {
-    background-color: #7f8c8d; /* Szürke */
-    color: white;
-}
-.cancel-btn:hover {
-    background-color: #616a6b;
-}
-
-/* Inputok a szerkesztési módban */
-.user-table td input,
-.user-table td select {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.9rem;
-    width: 100%;
-    box-sizing: border-box;
-}
-
 </style>

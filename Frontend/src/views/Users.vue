@@ -1,7 +1,7 @@
 <template>
-  <div v-if="user.role === 'admin'" class="page-container-dark">
+  <div v-if="user.role === 'admin'" class="page-container">
     <div class="page-content-box">
-      <h2 class="section-title">Felhasználók</h2>
+      <h2 class="section-title">Felhasználók Kezelése</h2>
       
       <div class="user-grid">
         <UserCard v-for="u in users" :key="u.id" :user="u" />
@@ -9,10 +9,17 @@
       
     </div>
   </div>
-  <div v-else class="page-container-dark">
-    <div class="page-content-box">
-      <h2 class="section-title text-center" style="color: #D63031;">Hozzáférés megtagadva</h2>
-      <p class="text-center">Csak rendszergazdák láthatják ezt az oldalt.</p>
+  
+  <div v-else class="page-container">
+    <div class="page-content-box access-denied-box">
+      <div class="text-center p-5">
+        <i class="bi bi-exclamation-octagon-fill display-1 text-danger mb-4"></i>
+        <h2 class="section-title border-0">Hozzáférés megtagadva</h2>
+        <p class="lead">Sajnáljuk, de csak rendszergazdák láthatják ezt az oldalt.</p>
+        <router-link to="/dashboard" class="btn custom-btn-primary mt-3">
+          Vissza a főoldalra
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -25,41 +32,57 @@ const user = JSON.parse(localStorage.getItem('user') || '{}')
 </script>
 
 <style scoped>
-/* --- FŐ ELRENDEZÉS STÍLUSOK (Logs.vue alapján, 900px) --- */
-.page-container-dark {
-  background-color: #222831; 
+.page-container {
+  background-color: var(--bg-main); 
   display: flex;
   justify-content: center;
   padding: 30px; 
   min-height: 100vh;
   width: 100%; 
+  transition: background-color 0.3s ease;
 }
 
 .page-content-box {
-  background-color: #393E46; 
-  color: #DFD0B8; 
+  background-color: var(--bg-card); 
+  color: var(--text-main); 
   padding: 2rem;
   border-radius: 16px;
-  
-  /* EGYSÉGES SZÉLESSÉG */
-  width: 900px;
-  max-width: 95%; 
-  
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  max-width: 1000px; /* Megnövelve a rács miatt */
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .section-title {
-  color: #DFD0B8;
-  border-bottom: 2px solid #948979; 
+  color: var(--text-main);
+  border-bottom: 2px solid var(--accent); 
   padding-bottom: 0.5rem;
   margin-bottom: 1.5rem;
+  font-size: 1.8rem;
 }
 
-/* --- RÁCS ELRENDEZÉS a kártyákhoz --- */
+/* --- RÁCS ELRENDEZÉS --- */
 .user-grid {
     display: grid;
-    /* Automatikus tördelés: minimum 250px széles oszlopok */
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem; 
+}
+
+/* --- ACCESS DENIED EXTRA --- */
+.access-denied-box {
+    border-top: 5px solid #D63031;
+}
+
+.custom-btn-primary {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+}
+
+.custom-btn-primary:hover {
+  filter: brightness(1.1);
 }
 </style>

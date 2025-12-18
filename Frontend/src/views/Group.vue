@@ -1,5 +1,5 @@
 <template>
-  <div class="page-container-dark">
+  <div class="page-container">
     <div class="page-content-box">
       
       <h2 class="section-title">Csoportok Kezelése</h2>
@@ -13,7 +13,7 @@
       </button>
 
       <div class="group-grid">
-        <div v-for="g in reactiveGroups" :key="g.id" class="group-card-grid">
+        <div v-for="g in reactiveGroups" :key="g.id" class="group-card">
           
           <div class="card-header-flex">
             <h4 class="group-name">{{ g.name }}</h4>
@@ -46,7 +46,7 @@
                 <li v-for="memberId in g.members" :key="memberId">
                   <i class="bi bi-person-fill me-1"></i> {{ getUserName(memberId) }}
                 </li>
-                <li v-if="g.members.length === 0">Nincs tag</li>
+                <li v-if="g.members.length === 0" class="no-member">Nincs tag</li>
               </ul>
             </div>
 
@@ -63,29 +63,29 @@
 
   <div class="modal fade" id="addGroupModal" tabindex="-1" aria-labelledby="addGroupModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content modal-dark">
-        <div class="modal-header modal-dark-header">
+      <div class="modal-content custom-modal">
+        <div class="modal-header">
           <h5 class="modal-title" id="addGroupModalLabel">Új csoport létrehozása</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" :class="{'btn-close-white': isDarkMode}" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <form @submit.prevent="addNewGroup">
           <div class="modal-body">
             
             <div class="mb-3">
-              <label for="groupName" class="form-label light-text">Csoport neve</label>
-              <input type="text" class="form-control dark-input" id="groupName" v-model="newGroupName" required>
+              <label for="groupName" class="form-label">Csoport neve</label>
+              <input type="text" class="form-control custom-input" id="groupName" v-model="newGroupName" required>
             </div>
             
             <div class="mb-3">
-              <label for="groupLeader" class="form-label light-text">Csoportvezető (Leader)</label>
-              <select class="form-select dark-input" id="groupLeader" v-model="newGroupLeaderId" required>
+              <label for="groupLeader" class="form-label">Csoportvezető (Leader)</label>
+              <select class="form-select custom-input" id="groupLeader" v-model="newGroupLeaderId" required>
                 <option disabled value="">Válasszon vezetőt</option>
                 <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }} ({{ u.role }})</option>
               </select>
             </div>
             
           </div>
-          <div class="modal-footer modal-dark-footer">
+          <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mégsem</button>
             <button type="submit" class="btn custom-btn-primary">Létrehozás</button>
           </div>
@@ -96,13 +96,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-// Feltételezzük, hogy a users és groups adatok innen jönnek
+import { ref, computed } from 'vue'
 import { groups, users } from '../data' 
 
 const reactiveGroups = ref(JSON.parse(JSON.stringify(groups)))
 const newGroupName = ref('')
 const newGroupLeaderId = ref('')
+
+// Figyeljük az aktuális témát a bezáró gomb (X) színe miatt
+const isDarkMode = computed(() => {
+    return document.documentElement.getAttribute('data-theme') !== 'light';
+});
 
 const getUserName = (id) => {
   const user = users.find(u => u.id === id)
@@ -121,7 +125,6 @@ const deleteGroup = (id) => {
 
 const addNewGroup = () => {
   if (newGroupName.value && newGroupLeaderId.value) {
-    // Győződjünk meg arról, hogy a users-ből származó ID-k számok
     const maxId = reactiveGroups.value.length > 0 
                   ? Math.max(...reactiveGroups.value.map(g => g.id))
                   : 0
@@ -130,16 +133,14 @@ const addNewGroup = () => {
     const newGroup = {
       id: newId,
       name: newGroupName.value,
-      leader_id: parseInt(newGroupLeaderId.value), // Ensure it's a number if IDs are numeric
+      leader_id: parseInt(newGroupLeaderId.value),
       members: [],
     }
 
     reactiveGroups.value.push(newGroup)
-
     newGroupName.value = ''
     newGroupLeaderId.value = ''
     
-    // Bootstrap Modal manuális bezárása
     const modalElement = document.getElementById('addGroupModal')
     if (modalElement && window.bootstrap) {
         const bootstrapModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement)
@@ -150,58 +151,52 @@ const addNewGroup = () => {
 </script>
 
 <style scoped>
-/* --- FŐ ELRENDEZÉS STÍLUSOK (Logs.vue alapján) --- */
-.page-container-dark {
-  background-color: #222831; 
-  display: flex;
-  justify-content: center;
-  padding: 30px; 
+.page-container {
+  padding: 2rem; 
   min-height: 100vh; 
   width: 100%; 
 }
 
 .page-content-box {
-  background-color: #393E46; 
-  color: #DFD0B8; 
+  background-color: var(--bg-card); 
+  color: var(--text-main); 
   padding: 2rem;
   border-radius: 16px;
-  
-  /* EGYSÉGES SZÉLESSÉG */
-  width: 900px; 
-  max-width: 95%; 
-  
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  max-width: 1000px; 
+  margin: 0 auto;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .section-title {
-    color: #DFD0B8;
-    border-bottom: 2px solid #948979;
+    color: var(--text-main);
+    border-bottom: 2px solid var(--accent);
     padding-bottom: 0.5rem;
     margin-bottom: 1.5rem;
     font-size: 1.8rem;
 }
 
-/* --- RÁCS ELRENDEZÉS a kártyákhoz (Mint a Users.vue-ban) --- */
 .group-grid {
     display: grid;
-    /* Automatikus tördelés: minimum 280px széles oszlopok */
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem; 
 }
 
-/* --- CSOPORTKÁRTYA STÍLUSOK --- */
-.group-card-grid {
-  background-color: #222831; 
-  color: #DFD0B8; 
-  padding: 1rem;
+.group-card {
+  background-color: var(--bg-inner); 
+  color: var(--text-main); 
+  padding: 1.25rem;
   border-radius: 12px;
-  border: 1px solid #484f59; /* Enyhe szegély */
-  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
 }
 
-.group-card-grid:hover {
+.group-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+    border-color: var(--accent);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
 .card-header-flex {
@@ -209,116 +204,97 @@ const addNewGroup = () => {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.5rem;
-    border-bottom: 1px solid #393E46;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.5rem;
 }
 
 .group-name {
-  color: #DFD0B8;
+  color: var(--text-main);
   font-size: 1.3rem;
   margin: 0;
+  font-weight: 600;
 }
 
-.card-body-content {
-    padding-top: 0.5rem;
-}
-
-.info-row {
-    display: flex;
-    align-items: center;
-    font-size: 0.95rem;
-    margin-bottom: 0.5rem;
-}
-
-.leader-info strong {
-    color: #948979; /* Kiemelő szín */
-    font-weight: 600;
-}
-
-.member-count {
-    font-weight: 600;
-    color: #DFD0B8;
+.leader-name {
+    color: var(--accent);
 }
 
 .card-divider {
-    border-top: 1px solid #393E46;
+    border-top: 1px solid var(--border-color);
     margin: 1rem 0;
-    opacity: 1;
+    opacity: 0.5;
 }
 
-/* Tagok listája a kártyán belül */
 .member-list {
     margin-top: 0.5rem;
-    padding-left: 1rem;
+    padding-left: 0.5rem;
     font-size: 0.9rem;
-    max-height: 90px;
-    overflow-y: auto;
 }
 
 .member-list li {
-    line-height: 1.4;
-    color: #b5ac9d;
+    color: var(--text-main);
+    opacity: 0.8;
+    margin-bottom: 0.2rem;
 }
 
-/* Törlés Gomb Stílusok */
+.no-member {
+    font-style: italic;
+    opacity: 0.5;
+}
+
 .delete-btn {
-    background: none;
-    border: none;
-    color: #D63031; 
-    padding: 0;
-    font-size: 1.2rem;
-    transition: color 0.2s;
+    color: #e74c3c; 
+    transition: transform 0.2s;
 }
+
 .delete-btn:hover {
-    color: #FF6B6B;
+    color: #c0392b;
+    transform: scale(1.2);
 }
 
-/* --- MODAL ÉS FORM STÍLUSOK (Megtartva) --- */
+/* --- MODAL STÍLUSOK --- */
+.custom-modal {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+.modal-header, .modal-footer {
+    border-color: var(--border-color);
+}
+
+.custom-input {
+    background-color: var(--bg-inner);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+.custom-input:focus {
+    background-color: var(--bg-inner);
+    color: var(--text-main);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 0.25rem rgba(148, 137, 121, 0.25);
+}
+
 .custom-btn-primary {
-  background-color: #948979;
-  border-color: #948979;
+  background-color: var(--accent);
+  border-color: var(--accent);
   color: white;
-  font-weight: 600;
 }
+
 .custom-btn-primary:hover {
-  background-color: #7d7264;
-  border-color: #7d7264;
-}
-
-.modal-content.modal-dark {
-    background-color: #393E46;
-    color: #DFD0B8;
-}
-
-.modal-header.modal-dark-header {
-    border-bottom: 1px solid #484f59;
-}
-
-.modal-footer.modal-dark-footer {
-    border-top: 1px solid #484f59;
-}
-
-.form-control.dark-input, 
-.form-select.dark-input {
-    background-color: #222831;
-    border-color: #484f59;
-    color: #DFD0B8;
-}
-.form-control.dark-input:focus,
-.form-select.dark-input:focus {
-    border-color: #948979;
-    box-shadow: 0 0 0 0.25rem rgba(148, 137, 121, 0.25); 
-}
-
-.btn-close-white {
-    filter: invert(1);
+  filter: brightness(1.1);
 }
 
 .no-groups-message {
-    background-color: #222831;
+    background-color: var(--bg-inner);
     border-radius: 8px;
-    border: 1px solid #484f59;
-    color: #948979;
-    font-size: 1.1rem;
+    border: 1px dashed var(--accent);
+    color: var(--accent);
+}
+
+/* Bootstrap "X" gomb invertálása sötét módban */
+.btn-close-white {
+    filter: invert(1) grayscale(100%) brightness(200%);
 }
 </style>
