@@ -26,16 +26,22 @@ const getUserName = (card_id) => {
 
 <style scoped>
 .chart-card {
-  /* Fix kék helyett a téma szerinti kártya háttér */
   background-color: var(--bg-card); 
   color: var(--text-main);
-  padding: 1.5rem;
+  /* A 1.5rem helyett adjunk nagyobb értéket az aljának: */
+  padding: 1.5rem 1.5rem 2.5rem 1.5rem; 
   border-radius: 12px;
   margin: 1rem 0;
-  /* Világos módban fontos a finom szegély a láthatóságért */
   border: 1px solid var(--border-color);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  /* Ez biztosítja, hogy a tartalom ne lógjon ki semmiképp: */
+  overflow: hidden; 
+}
+.chart-container {
+  position: relative;
+  /* Adjunk neki egy kis extra helyet az alján a feliratoknak */
+  margin-bottom: 10px; 
+  width: 100%;
 }
 
 .section-title {

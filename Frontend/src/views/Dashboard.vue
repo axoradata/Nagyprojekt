@@ -197,6 +197,12 @@ const initializeChart = () => {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+            padding: {
+                bottom: 20, // Extra helyet csinál alul a betűknek
+                top: 10
+                }
+            },
             scales: {
                 y: { 
                     beginAtZero: true, max: 12,
