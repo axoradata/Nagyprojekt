@@ -30,7 +30,7 @@ try:
     )
 
     cur.execute("""CREATE TABLE IF NOT EXISTS working_hours (
-            card_id VARCHAR(32) PRIMARY KEY,
+            card_id VARCHAR(32),
             check_time TIMESTAMP
             );"""
     )
@@ -44,3 +44,4 @@ except Exception as e:
 finally:
     cur.close()
     conn.close()
+
