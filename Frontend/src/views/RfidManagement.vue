@@ -1,12 +1,12 @@
 <template>
   <div class="page-container">
     <div class="page-content-box wide-box">
-      <h1 class="page-title">RFID Kezelés / Felhasználók</h1>
+      <h1 class="page-title">RFID kezelés</h1>
       
       <div class="controls-section">
         <input 
           v-model="searchTerm" 
-          placeholder="Keresés: Név, Email vagy Kártya ID..." 
+          placeholder="Keresés: név, email vagy kártya ID..." 
           class="custom-input search-input"
         />
         

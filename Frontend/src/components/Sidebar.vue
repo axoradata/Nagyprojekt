@@ -6,7 +6,7 @@
     <div class="position-sticky pt-3 sidebar-sticky">
       <div class="canvas-header">
         <h5 class="canvas-title text-center" id="sidebarMenuLabel">
-          <img src="../assets/Axora.png" style="height:150px;" alt="Logo" />
+          <img src="../assets/logo.png" style="height:150px;" alt="Logo" />
         </h5>
       </div>
 
@@ -68,7 +68,7 @@
               :class="{ active: isActive('/logs') }"
             >
               <i class="bi bi-journal-text me-2"></i>
-              Események
+              Eseménynapló
             </router-link>
           </li>
 
@@ -111,15 +111,26 @@
 <script setup>
 import { ref } from "vue"
 import { useRouter, useRoute } from "vue-router"
+import axios from "axios"
 
 const router = useRouter()
 const route = useRoute()
 
 const user = ref(JSON.parse(localStorage.getItem("user") || "{}"))
 
-const logout = () => {
-  localStorage.removeItem("user")
-  router.push("/login")
+const logout = async () => {
+  try {
+    await axios.post('http://localhost:8000/user/logout', null, {
+      params: { username: user.value.username }
+    })
+    console.log("Backend kijelentkezés sikeres.")
+  } catch (error) {
+    console.error("Hiba a backend kijelentkezés során:", error)
+  } finally {
+    localStorage.removeItem("user")
+    localStorage.removeItem("token")
+    router.push("/login")
+  }
 }
 
 const isActive = (path) => {

@@ -1,7 +1,7 @@
 <template>
   <div v-if="user.role === 'admin'" class="page-container">
     <div class="page-content-box">
-      <h2 class="section-title">Felhasználók Kezelése</h2>
+      <h2 class="section-title">Felhasználók</h2>
       
       <div class="user-grid">
         <UserCard v-for="u in users" :key="u.id" :user="u" />

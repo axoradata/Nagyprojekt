@@ -1,7 +1,5 @@
 <template>
   <div class="main-content">
-    <h1 class="page-title">Üdv, {{ user.username }}!</h1>
-
     <div class="stats-grid">
       <div class="stat-card">
         <p class="stat-value">{{ filteredLogs.length }}</p>
@@ -15,7 +13,7 @@
 
       <div v-if="user.role === 'leader'" class="stat-card">
         <p class="stat-value accent-text">{{ supervisedUsersCount }}</p>
-        <p class="stat-label">Felügyelt Tagok Összesen</p>
+        <p class="stat-label">Felügyelt tagok Összesen</p>
       </div>
 
       <div v-if="user.role === 'worker'" class="stat-card">
@@ -25,14 +23,14 @@
     </div>
 
     <div class="card-custom chart-card">
-        <h2>Napi Ledolgozott Munkaidő (Hétfő-Vasárnap)</h2>
+        <h2>Napi ledolgozott munkaidő (hétfő-vasárnap)</h2>
         <div style="height: 100%; width: 100%;">
           <canvas id="weeklyLogChart"></canvas>
         </div>
     </div>
 
     <div class="card-custom log-preview">
-      <h2>Legutóbbi események (Top 5)</h2>
+      <h2>Legutóbbi események (top 5)</h2>
       <ul class="log-list">
         <li v-for="log in recentLogs" :key="log.id">
           <span :class="log.log_IN ? 'log-in' : 'log-out'">

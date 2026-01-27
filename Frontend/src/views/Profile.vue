@@ -2,10 +2,10 @@
   <div class="page-container">
     <div class="page-content-box">
       
-      <h2 class="section-title">Felhasználói Profil</h2>
+      <h2 class="section-title">Profil</h2>
       
       <div class="profile-section mb-5">
-        <h3 class="section-subtitle">Alap Információk</h3>
+        <h3 class="section-subtitle">Alap információk</h3>
         <hr class="section-divider">
 
         <div class="data-row">
@@ -30,7 +30,7 @@
       </div>
 
       <div class="profile-section">
-        <h3 class="section-subtitle">Beállítások és Biztonság</h3>
+        <h3 class="section-subtitle">Beállítások és biztonság</h3>
         <hr class="section-divider">
         
         <div class="data-row mb-4">
@@ -44,7 +44,7 @@
               >
                 <option value="light">Világos</option>
                 <option value="dark">Sötét</option>
-                <option value="auto">Automatikus (Rendszer)</option>
+                <option value="auto">Automatikus (rendszer)</option>
               </select>
             </div>
           </div>

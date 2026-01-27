@@ -1,0 +1,15 @@
+# Python környezet és gyorsítótár
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# PyCharm specifikus fájlok
+.idea/
+
+# Adatbázis és egyéb lokális fájlok
+.env
+*.db
+*.log

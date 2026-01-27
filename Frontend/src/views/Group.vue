@@ -2,14 +2,14 @@
   <div class="page-container">
     <div class="page-content-box">
       
-      <h2 class="section-title">Csoportok Kezelése</h2>
+      <h2 class="section-title">Csoportok</h2>
       
       <button 
         class="btn custom-btn-primary mb-4 w-100" 
         data-bs-toggle="modal" 
         data-bs-target="#addGroupModal"
       >
-        <i class="bi bi-plus-circle-fill me-2"></i> Új Csoport Hozzáadása
+        <i class="bi bi-plus-circle-fill me-2"></i> Új csoport hozzáadása
       </button>
 
       <div class="group-grid">

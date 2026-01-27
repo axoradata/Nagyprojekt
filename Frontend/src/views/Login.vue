@@ -1,11 +1,12 @@
 <template>
   <div class="login-page">
+  <button @click="testConnection" class="test-btn">Backend Teszt</button>
     <div class="auth-box">
       <h1>Belépés</h1>
       <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label class="label-text">Email:</label>
-          <input type="email" v-model="email" required class="custom-input" />
+          <input type="text" v-model="email" required class="custom-input" />
         </div>
         <div class="form-group">
           <label class="label-text">Jelszó:</label>
@@ -19,6 +20,7 @@
 </template>
 
 <script>
+import axios from 'axios';
 import { users } from '../data'
 
 export default {
@@ -27,17 +29,40 @@ export default {
     return {
       email: '',
       password: '',
-      errorMessage: ''
+      errorMessage: '',
+      testMessage: ''
     }
   },
   methods: {
-    handleLogin() {
-      const user = users.find(u => u.email === this.email && u.password === this.password)
-      if (user) {
-        localStorage.setItem('user', JSON.stringify(user))
-        this.$router.push('/dashboard')
-      } else {
-        this.errorMessage = 'Hibás email vagy jelszó'
+    async testConnection() {
+      try {
+        const response = await axios.get('http://localhost:8000/');
+        this.testMessage = `Backend mondja: ${response.data.Hello}`;
+        console.log("Megjött a válasz:", response.data);
+      } catch (error) {
+        console.error("Hiba:", error);
+      }
+    },
+    async handleLogin() {
+      try {
+        this.errorMessage = '';
+  
+        const url = 'http://localhost:8000/user/login';
+        
+        const response = await axios.post(url, null, {
+          params: {
+            username: this.email,
+            password: this.password
+          }
+        });
+
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('user', JSON.stringify({ username: this.email, role: 'admin' }));
+          this.$router.push('/dashboard');
+        }
+      } catch (error) {
+        this.errorMessage = "Hiba a bejelentkezés során.";
       }
     }
   }
@@ -45,7 +70,27 @@ export default {
 </script>
 
 <style scoped>
-/* A scoped stílus fontos, hogy ne zavarjon be más oldalaknak */
+/* TESZTHEZ */
+.test-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 8px 15px;
+  background: #34495e;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 100;
+}
+
+.test-message {
+  margin-top: 15px;
+  font-size: 0.85rem;
+  color: #27ae60;
+  font-weight: bold;
+}
+/*--------------------------*/
 
 .login-page {
   display: flex;
@@ -63,7 +108,6 @@ export default {
   padding: 3rem 3.5rem;
   border-radius: 20px;
   border: 1px solid var(--border-color);
-  /* Dinamikusabb árnyék */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); 
   width: 400px;
   max-width: 90%;
