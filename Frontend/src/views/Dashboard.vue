@@ -24,7 +24,7 @@
 
     <div class="card-custom chart-card">
         <h2>Napi ledolgozott munkaidő (hétfő-vasárnap)</h2>
-        <div style="height: 100%; width: 100%;">
+        <div style="height: 100%; width: 100%; padding-bottom: 2rem;">
           <canvas id="weeklyLogChart"></canvas>
         </div>
     </div>
@@ -45,14 +45,36 @@
 </template>
 
 <script setup>
-import { onMounted, computed, ref, nextTick, watch } from 'vue'
-import { users, logins, groups } from '../data'
+import { onMounted, computed, ref, watch } from 'vue'
+import axios from 'axios'
 import Chart from 'chart.js/auto'; 
 
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}')) 
+const logins = ref([])
 let chartInstance = null; 
 
-// --- DÁTUM SEGÉDFÜGGVÉNYEK ÉS LOGIKA (Változatlan) ---
+const fetchData = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return;
+    
+    try {
+        const res = await axios.get('http://localhost:8000/user/info', { params: { token } })
+        if (res.data.status === 1) {
+            logins.value = (res.data.working_hours || []).map((timeStr, index) => ({
+                id: index,
+                card_id: res.data.card_id,
+                time: timeStr,
+                log_IN: index % 2 === 0 
+            }))
+            
+            user.value.role = res.data.disposition || res.data.role;
+            user.value.full_name = res.data.full_name;
+        }
+    } catch (e) {
+        console.error("Hiba az adatok letöltésekor:", e)
+    }
+}
+
 const parseLogTime = (logTimeString) => {
     if (!logTimeString) return null;
     const parsable = logTimeString.replace(/(\d{4})\. (\d{2})\. (\d{2})\./, '$1/$2/$3').trim();
@@ -69,6 +91,7 @@ const calculateWorkDuration = (logData) => {
     let totalMinutes = 0;
     let clockInTime = null;
     const sortedLogs = [...logData].sort((a, b) => parseLogTime(a.time) - parseLogTime(b.time));
+    
     sortedLogs.forEach(log => {
         const currentTime = parseLogTime(log.time);
         if (!currentTime) return;
@@ -82,41 +105,30 @@ const calculateWorkDuration = (logData) => {
     return totalMinutes / 60;
 };
 
-const getUsername = (card_id) => {
-  const u = users.find(u => u.card_id == card_id)
-  return u ? u.username : 'Ismeretlen'
+const getUsername = () => {
+  return user.value.full_name || 'Én';
 }
 
 const filteredLogs = computed(() => {
   const userCardId = user.value.card_id; 
-  const userRole = user.value.role;
-  return logins.filter(log => {
-    if(userRole === 'admin') return true
-    if(userRole === 'leader') {
-      const supervisedMembersCardIds = groups
-        .filter(g => g.leader_id === user.value.id)
-        .flatMap(g => g.members)
-        .map(memberId => users.find(u => u.id === memberId)?.card_id)
-        .filter(id => id);
-      return supervisedMembersCardIds.includes(log.card_id) || log.card_id == userCardId;
-    }
-    return userRole === 'worker' ? log.card_id == userCardId : false
-  })
+  const userRole = user.value.role || user.value.disposition;
+  
+  return logins.value.filter(log => {
+    if(userRole === 'admin') return true;
+    return log.card_id == userCardId;
+  });
 })
 
 const recentLogs = computed(() => [...filteredLogs.value].reverse().slice(0, 5));
+
 const usersInToday = computed(() => {
     const statuses = {};
     filteredLogs.value.forEach(log => { statuses[log.card_id] = log.log_IN; });
     return Object.keys(statuses).filter(cardId => statuses[cardId] === true).length;
 });
-const supervisedUsersCount = computed(() => {
-    if (user.value.role !== 'leader') return 0;
-    const members = groups.filter(g => g.leader_id === user.value.id).flatMap(g => g.members);
-    return new Set(members).size;
-});
+
 const myWeeklyWorkHours = computed(() => {
-    if (user.value.role !== 'worker') return 0;
+    const userRole = user.value.role || user.value.disposition;
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const relevantLogs = filteredLogs.value.filter(log => {
@@ -128,66 +140,43 @@ const myWeeklyWorkHours = computed(() => {
 
 const weeklyChartData = computed(() => {
     const currentUserId = user.value.card_id; 
-    if (!currentUserId) return { labels: [], datasets: [] };
-
     const today = startOfDay(new Date());
     const displayDayNamesShort = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V']; 
-    const dateLabels = []; 
-    const fullDateLabels = []; 
-
+    
     const currentDayOfWeek = today.getDay(); 
     const daysToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1; 
     const monday = new Date(today);
     monday.setDate(today.getDate() - daysToMonday);
 
+    const dailyHours = [];
     for (let i = 0; i < 7; i++) {
-        const day = new Date(monday);
-        day.setDate(monday.getDate() + i);
-        dateLabels.push(displayDayNamesShort[i]);
-        fullDateLabels.push(`${day.getMonth() + 1}/${day.getDate()}`); 
-    }
-
-    const dailyHours = fullDateLabels.map((_, index) => {
         const targetDate = new Date(monday);
-        targetDate.setDate(monday.getDate() + index); 
-        const start = new Date(targetDate).setHours(0,0,0,0);
-        const end = new Date(targetDate).setDate(targetDate.getDate() + 1);
+        targetDate.setDate(monday.getDate() + i); 
+        const start = targetDate.getTime();
+        const end = targetDate.getTime() + (24 * 60 * 60 * 1000);
+
         const dailyUserLogs = filteredLogs.value.filter(log => {
-            const d = parseLogTime(log.time);
+            const d = parseLogTime(log.time)?.getTime();
             return log.card_id == currentUserId && d >= start && d < end;
         });
-        return parseFloat(calculateWorkDuration(dailyUserLogs).toFixed(2));
-    });
+        dailyHours.push(parseFloat(calculateWorkDuration(dailyUserLogs).toFixed(2)));
+    }
 
     return {
-        labels: dateLabels, 
+        labels: displayDayNamesShort, 
         datasets: [{
             label: `Ledolgozott órák`, 
             data: dailyHours, 
-            backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#948979',
-            borderRadius: 5,
-            fullDateLabels: fullDateLabels 
+            backgroundColor: '#948979',
+            borderRadius: 5
         }]
     };
 });
 
-// --- DINAMIKUS CHART.JS SZÍNEK ---
-const getChartColors = () => {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-    return {
-        text: isLight ? '#2d3436' : '#DFD0B8',
-        grid: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(223, 208, 184, 0.1)',
-        tooltipBg: isLight ? '#ffffff' : '#222831'
-    };
-};
-
 const initializeChart = () => {
-    if (chartInstance) chartInstance.destroy();
     const canvas = document.getElementById('weeklyLogChart');
     if (!canvas) return;
-
-    const colors = getChartColors();
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    if (chartInstance) chartInstance.destroy();
 
     chartInstance = new Chart(canvas.getContext('2d'), {
         type: 'bar', 
@@ -195,43 +184,22 @@ const initializeChart = () => {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            layout: {
-            padding: {
-                bottom: 20, // Extra helyet csinál alul a betűknek
-                top: 10
-                }
-            },
-            scales: {
-                y: { 
-                    beginAtZero: true, max: 12,
-                    ticks: { color: colors.text },
-                    grid: { color: colors.grid },
-                    title: { display: true, text: 'Órák', color: colors.text }
-                },
-                x: { 
-                    ticks: { color: colors.text },
-                    grid: { display: false }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: colors.tooltipBg,
-                    titleColor: accentColor,
-                    bodyColor: colors.text,
-                    borderColor: accentColor,
-                    borderWidth: 1
-                }
-            }
+            scales: { y: { beginAtZero: true, max: 12 } },
+            plugins: { legend: { display: false } }
         }
     });
 };
 
-onMounted(() => {
+onMounted(async () => {
+    await fetchData();
     initializeChart();
-    // Figyeljük, ha a téma változik, rajzoljuk újra a chartot
+    
     const observer = new MutationObserver(() => initializeChart());
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+});
+
+watch(logins, () => {
+    initializeChart();
 });
 </script>
 

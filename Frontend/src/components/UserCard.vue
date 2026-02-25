@@ -1,68 +1,100 @@
 <template>
   <div class="user-card">
-    <h3 class="user-title">{{ user.username }}</h3>
+    <h3 class="user-title">{{ user.full_name || 'Névtelen felhasználó' }}</h3>
+    
     <div class="user-info">
-      <p>Szerepkör: <span class="role-text">{{ user.role }}</span></p>
-      <p>Email: <span class="info-value">{{ user.email }}</span></p>
-      <p>Regisztrálva: <span class="info-value">{{ user.created_at }}</span></p>
+      <p>Beosztás: <span class="role-text">{{ user.disposition || 'Nincs megadva' }}</span></p>
+      
+      <p>Kártya ID: <span class="info-value code-font">{{ user.card_id }}</span></p>
+      
+      <p v-if="user.group">Csoport: <span class="info-value">{{ user.group }}</span></p>
+    </div>
+
+    <div class="card-actions mt-3">
+       <button @click="$emit('delete', user.card_id)" class="btn-delete">
+         <i class="bi bi-trash"></i> Törlés
+       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
+import { defineProps, defineEmits } from 'vue'
 
 const props = defineProps({
-  user: Object
+  user: {
+    type: Object,
+    required: true
+  }
 })
+
+defineEmits(['delete'])
 </script>
 
 <style scoped>
 .user-card {
-  /* Fix #222831 helyett a belső háttér változó */
   background-color: var(--bg-inner); 
   color: var(--text-main); 
-  padding: 1.25rem;
+  padding: 1.5rem;
   border-radius: 12px;
-  margin: 1rem 0;
-  /* Az accent színünket használjuk a kerethez */
-  border: 1px solid var(--accent);
+  border: 1px solid var(--border-color);
   transition: all 0.3s ease;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .user-title {
-  color: var(--text-main);
+  color: var(--accent); /* Kiemeljük a nevet az accent színnel */
   margin-top: 0;
-  /* Fix #393E46 helyett a téma szerinti szegély */
   border-bottom: 1px dashed var(--border-color); 
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
+  font-weight: bold;
 }
 
 .user-info p {
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
   font-size: 0.95rem;
-  color: var(--text-main);
-  opacity: 0.9;
-}
-
-.info-value {
-    color: var(--text-main);
 }
 
 .role-text {
   font-weight: bold; 
-  /* Kiemelő szín sötétben bézs, világosban sötétszürke */
-  color: var(--accent); 
-  text-transform: capitalize;
+  color: var(--text-main);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  background: var(--border-color);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-/* Hover effektus, hogy interaktívabb legyen */
+.code-font {
+  font-family: monospace;
+  background: rgba(0,0,0,0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.btn-delete {
+  background: transparent;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-delete:hover {
+  background: #e74c3c;
+  color: white;
+}
+
 .user-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-color: var(--accent-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent);
 }
 </style>

@@ -12,7 +12,7 @@
 
       <div class="fotartalom d-flex flex-column h-100">
         <h5 class="px-3 mb-4 mt-4 user-info">
-          Belépve: <span class="fw-bold">{{ user.username }}</span>
+          Belépve: <span class="fw-bold">{{ user.full_name }}</span>
         </h5>
 
         <ul class="nav flex-column">

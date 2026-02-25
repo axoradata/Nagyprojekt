@@ -6,21 +6,23 @@
       <div class="controls-section">
         <input 
           v-model="searchTerm" 
-          placeholder="Keresés: név, email vagy kártya ID..." 
+          placeholder="Keresés: név, beosztás vagy kártya ID..." 
           class="custom-input search-input"
         />
         
         <form class="add-form" @submit.prevent="addUser">
-          <input v-model="newUser.username" placeholder="Felhasználónév" required class="custom-input" />
-          <input v-model="newUser.email" placeholder="Email" type="email" required class="custom-input" />
+          <input v-model="newUser.full_name" placeholder="Felhasználónév" required class="custom-input" />
           <input v-model="newUser.password" placeholder="Jelszó" type="password" required class="custom-input" />
-          <select v-model="newUser.role" required class="custom-input select-role">
-            <option disabled value="">Szerep</option>
+          
+          <select v-model="newUser.disposition" required class="custom-input select-role">
+            <option disabled value="">Beosztás kiválasztása</option>
             <option value="admin">Admin</option>
-            <option value="leader">Csoportvezető</option>
-            <option value="worker">Dolgozó</option>
+            <option value="team_leader">Csoportvezető</option>
+            <option value="employee">Dolgozó</option>
           </select>
+          
           <input v-model="newUser.card_id" placeholder="Kártya ID" required class="custom-input" />
+          
           <button type="submit" class="btn custom-btn-primary add-btn">
             <i class="bi bi-plus-circle me-1"></i> Hozzáadás
           </button>
@@ -29,51 +31,34 @@
       
       <div class="table-responsive">
         <table class="data-table user-table">
+          <colgroup>
+            <col style="width: 35%;"> <col style="width: 20%;"> <col style="width: 30%;"> <col style="width: 15%;"> </colgroup>
           <thead>
             <tr>
               <th>Név</th>
-              <th>Email</th>
-              <th>Szerep</th>
+              <th>Beosztás</th>
               <th>Kártya ID</th>
               <th>Műveletek</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id">
-              <template v-if="editingId === user.id">
-                <td><input v-model="editUser.username" class="custom-input table-input" /></td>
-                <td><input v-model="editUser.email" type="email" class="custom-input table-input" /></td>
-                <td>
-                  <select v-model="editUser.role" class="custom-input table-input">
-                    <option value="admin">Admin</option>
-                    <option value="leader">Csoportvezető</option>
-                    <option value="worker">Dolgozó</option>
-                  </select>
-                </td>
-                <td><input v-model="editUser.card_id" class="custom-input table-input" /></td>
-                <td class="action-cell">
-                  <button class="btn btn-sm save-btn" @click="saveEdit(user.id)">
-                    <i class="bi bi-save"></i>
-                  </button>
-                  <button class="btn btn-sm cancel-btn" @click="cancelEdit">
-                    <i class="bi bi-x-circle"></i>
-                  </button>
-                </td>
-              </template>
-              <template v-else>
-                <td>{{ user.username }}</td>
-                <td>{{ user.email }}</td>
-                <td><span class="badge role-badge">{{ user.role }}</span></td>
-                <td><code>{{ user.card_id }}</code></td>
-                <td class="action-cell">
-                  <button class="btn btn-sm edit-btn" @click="startEdit(user)" title="Módosítás">
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
-                  <button class="btn btn-sm delete-btn" @click="deleteUser(user.id)" title="Törlés">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </td>
-              </template>
+            <tr v-if="loading">
+              <td colspan="4" class="text-center">Adatok betöltése...</td>
+            </tr>
+            
+            <tr v-for="user in filteredUsers" :key="user.card_id">
+              <td class="text-truncate">{{ user.full_name }}</td>
+              <td><span class="badge role-badge">{{ user.disposition }}</span></td>
+              <td><code>{{ user.card_id }}</code></td>
+              <td class="action-cell">
+                <button class="btn btn-sm delete-btn" @click="deleteUser(user.card_id)" title="Törlés">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+
+            <tr v-if="!loading && filteredUsers.length === 0">
+              <td colspan="4" class="text-center">Nincs megjeleníthető adat.</td>
             </tr>
           </tbody>
         </table>
@@ -83,68 +68,93 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { users } from '../data'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 
-const usersList = ref([...users])
+const usersList = ref([])
 const searchTerm = ref('')
-const editingId = ref(null)
-const editUser = ref({})
+const loading = ref(true)
 
 const newUser = ref({
-  username: '',
-  email: '',
+  full_name: '',
   password: '',
-  role: '',
+  disposition: '',
   card_id: ''
 })
 
+const fetchUsers = async () => {
+  loading.value = true
+  const token = localStorage.getItem('token')
+  
+  try {
+    const response = await axios.get('http://localhost:8000/user/all', { 
+      params: { token: token } 
+    })
+    
+    if (response.data.status === 1) {
+      usersList.value = response.data.users 
+    } else {
+      console.warn("Hiba:", response.data.message)
+      usersList.value = []
+    }
+  } catch (e) {
+    console.error("Hálózati hiba:", e)
+  } finally {
+    loading.value = false
+  }
+}
+
 const filteredUsers = computed(() => {
-  if (!searchTerm.value) return usersList.value
   const search = searchTerm.value.toLowerCase()
   return usersList.value.filter(u =>
-    u.username.toLowerCase().includes(search) ||
-    u.email.toLowerCase().includes(search) ||
-    u.card_id.toLowerCase().includes(search)
+    (u.full_name?.toLowerCase().includes(search)) ||
+    (u.card_id?.toLowerCase().includes(search)) ||
+    (u.disposition?.toLowerCase().includes(search))
   )
 })
 
-const addUser = () => {
-  if (newUser.value.username && newUser.value.email && newUser.value.role && newUser.value.card_id) {
-    const existingCard = usersList.value.some(u => u.card_id === newUser.value.card_id);
-    if (existingCard) {
-        alert("Ez a Kártya ID már hozzá van rendelve egy felhasználóhoz!");
-        return; 
+const addUser = async () => {
+  const token = localStorage.getItem('token')
+  try {
+    const response = await axios.post('http://localhost:8000/user/register', null, {
+      params: {
+        card_id: newUser.value.card_id,
+        disposition: newUser.value.disposition,
+        full_name: newUser.value.full_name,
+        password: newUser.value.password,
+        token: token
+      }
+    })
+
+    if (response.data.status === 1) {
+      alert("Sikeres hozzáadás!")
+      // Csak azokat ürítjük, amik az inputban voltak
+      newUser.value = { full_name: '', password: '', disposition: '', card_id: '' }
+      fetchUsers()
+    } else {
+      alert("Hiba: " + (response.data.message || "Sikertelen regisztráció"))
     }
-    const id = usersList.value.length ? Math.max(...usersList.value.map(u => u.id)) + 1 : 1
-    usersList.value.push({ id, ...newUser.value, created_at: new Date().toLocaleDateString() })
-    newUser.value = { username: '', email: '', password: '', role: '', card_id: '' }
+  } catch (e) {
+    alert("Szerverhiba! Ellenőrizd a Backend futását.")
   }
 }
 
-const deleteUser = (id) => {
-  if (confirm('Biztosan törölni szeretnéd ezt a felhasználót?')) {
-    usersList.value = usersList.value.filter(u => u.id !== id)
+const deleteUser = async (card_id) => {
+  if (!confirm("Biztosan törölni szeretnéd?")) return
+  const token = localStorage.getItem('token')
+  try {
+    const response = await axios.delete('http://localhost:8000/user/delete', {
+      params: { card_id, token }
+    })
+    if (response.data.status === 1) {
+      fetchUsers()
+    }
+  } catch (e) {
+    console.error(e)
   }
 }
 
-const startEdit = (user) => {
-  editingId.value = user.id
-  editUser.value = { ...user } 
-}
-
-const cancelEdit = () => {
-  editingId.value = null
-  editUser.value = {}
-}
-
-const saveEdit = (id) => {
-  const index = usersList.value.findIndex(u => u.id === id)
-  if (index !== -1) {
-    usersList.value[index] = { ...editUser.value }
-    cancelEdit()
-  }
-}
+onMounted(fetchUsers)
 </script>
 
 <style scoped>
@@ -211,7 +221,7 @@ const saveEdit = (id) => {
   outline: none;
 }
 
-/* --- TÁBLÁZAT --- */
+/* --- TÁBLÁZAT FIXÁLÁSA --- */
 .table-responsive {
   overflow-x: auto;
 }
@@ -220,6 +230,8 @@ const saveEdit = (id) => {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  /* Megakadályozza az oszlopok ugrálását szűréskor */
+  table-layout: fixed; 
 }
 
 .user-table th {
@@ -228,20 +240,25 @@ const saveEdit = (id) => {
   color: var(--text-main);
   border-bottom: 2px solid var(--accent);
   text-align: left;
+  white-space: nowrap;
 }
 
 .user-table td {
   padding: 0.8rem 1rem;
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
+  /* Szöveg levágása, ha nem férne ki a fix szélességben */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-table tbody tr:nth-child(even) {
-  background-color: rgba(var(--accent-rgb, 148, 137, 121), 0.03);
+  background-color: rgba(148, 137, 121, 0.03);
 }
 
 .user-table tbody tr:hover {
-  background-color: rgba(var(--accent-rgb, 148, 137, 121), 0.08);
+  background-color: rgba(148, 137, 121, 0.08);
 }
 
 .role-badge {
@@ -257,6 +274,7 @@ code {
   background-color: var(--bg-inner);
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
+  font-family: monospace;
 }
 
 /* --- GOMBOK --- */
@@ -266,6 +284,8 @@ code {
   color: white;
   padding: 0.6rem 1.2rem;
   font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
 }
 
 .action-cell {
@@ -281,17 +301,11 @@ code {
   justify-content: center;
   border-radius: 6px;
   transition: transform 0.2s;
+  border: none;
+  cursor: pointer;
 }
 
 .btn-sm:hover { transform: scale(1.1); color: white; }
 
-.edit-btn { background-color: var(--accent); color: white; }
 .delete-btn { background-color: #e74c3c; color: white; }
-.save-btn { background-color: #2ecc71; color: white; }
-.cancel-btn { background-color: #95a5a6; color: white; }
-
-.table-input {
-  padding: 0.3rem 0.5rem;
-  font-size: 0.85rem;
-}
 </style>

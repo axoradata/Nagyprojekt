@@ -21,7 +21,6 @@
 
 <script>
 import axios from 'axios';
-import { users } from '../data'
 
 export default {
   name: 'Login',
@@ -44,25 +43,44 @@ export default {
       }
     },
     async handleLogin() {
+      console.log("Gomb megnyomva!");
       try {
-        this.errorMessage = '';
-  
-        const url = 'http://localhost:8000/user/login';
-        
-        const response = await axios.post(url, null, {
+        const response = await axios.post('http://localhost:8000/user/login', null, {
           params: {
             username: this.email,
             password: this.password
           }
         });
 
-        if (response.data.token) {
+        console.log("Válasz a backendtől:", response.data);
+
+        if (response.data.status === 1) {
+          console.log("Sikeres status! Token:", response.data.token);
+          
           localStorage.setItem('token', response.data.token);
-          localStorage.setItem('user', JSON.stringify({ username: this.email, role: 'admin' }));
+          
+          // A konzolod szerint a válasz így néz ki: 
+          // {status: 1, token: '...', card_id: '...', role: '...', name: '...'}
+          // Tehát nem response.data.user-t kell menteni, hanem ezeket a mezőket:
+          localStorage.setItem('user', JSON.stringify({
+            full_name: response.data.name || 'Ismeretlen',
+            card_id: response.data.card_id || '0000-0000-0000-0000',
+            role: response.data.role || 'worker',
+            disposition: response.data.role // Biztonság kedvéért mindkét néven elmentjük
+          }));
+
+          console.log("User adatok elmentve, irány a dashboard...");
+          
+          // Options API-ban (ebben a stílusban) így hivatkozunk a routerre:
           this.$router.push('/dashboard');
+          
+        } else {
+          console.error("A backend status 0-át küldött!");
+          this.errorMessage = "Hibás felhasználónév vagy jelszó!";
         }
       } catch (error) {
-        this.errorMessage = "Hiba a bejelentkezés során.";
+        console.error("Axios hívás hiba:", error);
+        this.errorMessage = "Hálózati hiba történt!";
       }
     }
   }

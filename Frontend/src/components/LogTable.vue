@@ -1,26 +1,35 @@
 <template>
   <div class="log-container">
     <h2 class="table-title">Belépési logok</h2>
-    <div class="table-responsive">
+    
+    <div v-if="loading" class="text-center p-4">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+    
+    <div v-else class="table-responsive">
       <table class="log-data-table">
         <thead>
           <tr>
             <th>Felhasználó</th>
-            <th>ID kártya</th>
-            <th>Idő</th>
-            <th>Be/Ki</th>
+            <th>Kártya ID</th>
+            <th>Időpont</th>
+            <th>Esemény</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="log in logs" :key="log.id">
-            <td>{{ getUserName(log.card_id) }}</td>
-            <td>{{ log.card_id }}</td>
-            <td>{{ log.time }}</td>
+          <tr v-for="(log, index) in formattedLogs" :key="index">
+            <td>{{ userData.name }}</td>
+            <td class="font-monospace text-accent">{{ userData.cardId }}</td>
+            <td class="font-monospace">{{ log.time }}</td>
             <td>
-              <span :class="log.log_IN ? 'entry-in' : 'entry-out'">
-                {{ log.log_IN ? "Belépés" : "Kilépés" }}
+              <span :class="log.isEntry ? 'entry-in' : 'entry-out'">
+                <i :class="log.isEntry ? 'bi bi-box-arrow-in-right' : 'bi bi-box-arrow-left'"></i>
+                {{ log.isEntry ? " Belépés" : " Kilépés" }}
               </span>
             </td>
+          </tr>
+          <tr v-if="formattedLogs.length === 0">
+            <td colspan="4" class="text-center p-4">Nincsenek rögzített adatok.</td>
           </tr>
         </tbody>
       </table>
@@ -29,14 +38,50 @@
 </template>
 
 <script setup>
-import { logins, users } from '../data'
+import { ref, onMounted, computed } from 'vue'
+import axios from 'axios'
 
-const logs = [...logins].reverse() // Eredeti tömb megőrzése mellett megfordítjuk
+const rawHours = ref([])
+const userData = ref({ name: '', cardId: '' })
+const loading = ref(true)
 
-const getUserName = (card_id) => {
-  const user = users.find(u => u.card_id === card_id)
-  return user ? user.username : 'Ismeretlen'
+const fetchLogs = async () => {
+  const token = localStorage.getItem('token')
+  try {
+    const response = await axios.get('http://localhost:8000/user/info', { params: { token } })
+    console.log("LogTable válasz:", response.data) // Ellenőrzéshez a konzolon
+    
+    if (response.data.status === 1) {
+      rawHours.value = response.data.working_hours || []
+      userData.value.name = response.data.full_name
+      userData.value.cardId = response.data.card_id
+    }
+  } catch (e) {
+    console.error("Hiba a logok betöltésekor:", e)
+  } finally {
+    loading.value = false
+  }
 }
+
+const formattedLogs = computed(() => {
+  return rawHours.value.map((item, index) => {
+    let timeStr = String(item);
+    
+    if (timeStr.includes('T') || timeStr.includes('-')) {
+      timeStr = timeStr
+        .replace('T', ' ')         
+        .replace(/-/g, '.') + '.';
+    }
+    
+    timeStr = timeStr.replace(/\s+/g, ' ').trim();
+
+    return {
+      time: timeStr,
+      isEntry: index % 2 === 0 
+    }
+  }).reverse()
+})
+onMounted(fetchLogs)
 </script>
 
 <style scoped>

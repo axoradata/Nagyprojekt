@@ -5,28 +5,33 @@
       <h2 class="section-title">Profil</h2>
       
       <div class="profile-section mb-5">
-        <h3 class="section-subtitle">Alap információk</h3>
+        <h3 class="section-subtitle">Információk</h3>
         <hr class="section-divider">
 
         <div class="data-row">
+          <div class="data-label">Teljes név:</div>
+          <div class="data-value">{{ user.full_name || 'Betöltés...' }}</div>
+        </div>
+
+        <!-- <div class="data-row">
           <div class="data-label">Felhasználónév:</div>
           <div class="data-value">{{ user.username }}</div>
+        </div> -->
+        
+        <div class="data-row">
+          <div class="data-label">Kártya azonosító (UID):</div>
+          <div class="data-value code-font">{{ user.card_id || 'Nincs adat' }}</div>
         </div>
         
         <div class="data-row">
-          <div class="data-label">Email:</div>
-          <div class="data-value">{{ user.email }}</div>
+          <div class="data-label">Beosztás:</div>
+          <div class="data-value role-value">{{ user.disposition || 'Nincs adat' }}</div>
         </div>
-        
-        <div class="data-row">
-          <div class="data-label">Szerepkör:</div>
-          <div class="data-value role-value">{{ user.role }}</div>
-        </div>
-        
-        <div class="data-row">
-          <div class="data-label">Regisztrálva:</div>
-          <div class="data-value">{{ user.created_at || 'Nincs adat' }}</div>
-        </div>
+
+        <!-- <div class="data-row">
+          <div class="data-label">Csoport:</div>
+          <div class="data-value">{{ user.group || 'Nincs csoport' }}</div>
+        </div> -->
       </div>
 
       <div class="profile-section">
@@ -36,26 +41,15 @@
         <div class="data-row mb-4">
           <div class="data-label">Megjelenítési mód:</div>
           <div class="data-value">
-            <div class="d-flex align-items-center gap-2">              
-              <select 
-                v-model="selectedTheme" 
-                @change="changeTheme" 
-                class="form-select custom-input select-theme"
-              >
-                <option value="light">Világos</option>
-                <option value="dark">Sötét</option>
-                <option value="auto">Automatikus (rendszer)</option>
-              </select>
-            </div>
+            <select v-model="selectedTheme" @change="changeTheme" class="form-select custom-input select-theme">
+              <option value="light">Világos</option>
+              <option value="dark">Sötét</option>
+              <option value="auto">Automatikus</option>
+            </select>
           </div>
         </div>
         
-        <button 
-          class="btn custom-btn-primary w-100" 
-          type="button" 
-          data-bs-toggle="collapse" 
-          data-bs-target="#passwordFormCollapse" 
-        >
+        <button class="btn custom-btn-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#passwordFormCollapse">
           <i class="bi bi-key-fill me-2"></i> Jelszó módosítása
         </button>
         
@@ -64,54 +58,116 @@
             <h4 class="mb-3">Új jelszó beállítása</h4>
             <form @submit.prevent="updatePassword">
               <div class="mb-3">
-                <label for="newPassword" class="form-label">Új jelszó</label>
-                <input type="password" class="form-control custom-input" id="newPassword" required>
+                <label class="form-label">Új jelszó</label>
+                <input 
+                  v-model="passUpdate.new" 
+                  type="password" 
+                  class="form-control custom-input" 
+                  required
+                >
               </div>
               <div class="mb-3">
-                <label for="confirmPassword" class="form-label">Jelszó megerősítése</label>
-                <input type="password" class="form-control custom-input" id="confirmPassword" required>
+                <label class="form-label">Jelszó megerősítése</label>
+                <input 
+                  v-model="passUpdate.confirm" 
+                  type="password" 
+                  class="form-control custom-input" 
+                  required
+                >
               </div>
-              <button type="submit" class="btn custom-btn-primary w-100">Mentés és módosítás</button>
+              <button type="submit" class="btn custom-btn-primary w-100">
+                <i class="bi bi-save me-2"></i>Mentés
+              </button>
             </form>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import axios from 'axios'
 
+// LocalStorage-ból indulunk
 const user = ref(JSON.parse(localStorage.getItem('user')) || {})
-
-// Aktuálisan kiválasztott téma (alapértelmezett az 'auto')
 const selectedTheme = ref(localStorage.getItem('theme') || 'auto')
 
+const applyThemeLogic = () => {
+  const theme = selectedTheme.value === 'auto' 
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : selectedTheme.value
+  document.documentElement.setAttribute('data-theme', theme)
+}
+
 const changeTheme = () => {
-  // Mentés localStorage-ba
   localStorage.setItem('theme', selectedTheme.value)
-  
-  // Azonnali alkalmazás (meghívjuk a globális logikát, ami az App.vue-ban is van)
   applyThemeLogic()
 }
 
-const applyThemeLogic = () => {
-  if (selectedTheme.value === 'auto') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light')
-  } else {
-    document.documentElement.setAttribute('data-theme', selectedTheme.value)
+const fetchUserInfo = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return
+
+  try {
+    const response = await axios.get('http://localhost:8000/user/info', {
+      params: { token: token }
+    })
+
+    if (response.data.status === 1) {
+      user.value = {
+        ...user.value,
+        full_name: response.data.full_name,
+        card_id: response.data.card_id,
+        disposition: response.data.disposition,
+        group: response.data.group
+      }
+      
+      localStorage.setItem('user', JSON.stringify(user.value))
+    }
+  } catch (error) {
+    console.error("Hiba az adatok lekérésekor:", error)
   }
 }
 
-const updatePassword = () => {
-    alert("Jelszó módosítása funkció fut. Frissíteni kell a szerver oldalon!");
+
+const passUpdate = ref({
+  new: '',
+  confirm: ''
+})
+
+const updatePassword = async () => {
+  if (passUpdate.value.new !== passUpdate.value.confirm) {
+    alert("A két jelszó nem egyezik meg!");
+    return;
+  }
+
+  const token = localStorage.getItem('token')
+  try {
+    const response = await axios.post('http://localhost:8000/user/update', null, {
+      params: {
+        newPass: passUpdate.value.new, // Átírva newPass-ra!
+        token: token
+      }
+    });
+
+    if (response.data.status === 1) {
+      alert("Jelszó sikeresen megváltoztatva!");
+      passUpdate.value.new = '';
+      passUpdate.value.confirm = '';
+    } else {
+      alert("Hiba: " + response.data.error);
+    }
+  } catch (e) {
+    console.error("Szerverhiba:", e);
+    alert("Szerverhiba (500). Nézd meg a Python terminált!");
+  }
 }
 
 onMounted(() => {
-    applyThemeLogic()
+  applyThemeLogic()
+  fetchUserInfo()
 })
 </script>
 
@@ -185,16 +241,21 @@ onMounted(() => {
   color: var(--accent); 
 }
 
+.role-value {
+  text-transform: uppercase;
+  background: var(--accent);
+  color: white !important;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
 .select-theme {
   min-width: 180px;
   cursor: pointer;
   background-color: var(--bg-card) !important;
   color: var(--text-main) !important;
   border: 1px solid var(--border-color) !important;
-}
-
-.role-value {
-  text-transform: uppercase;
 }
 
 .custom-form-bg {
