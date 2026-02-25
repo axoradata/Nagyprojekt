@@ -10,7 +10,7 @@ model = employeeModel.EmployeeModel
 token_validator = token.Token()
 
 # delete user
-@router.delete("/user/delete{card_id, token}" , tags=["admin"])
+@router.delete("/user/delete" , tags=["admin"])
 async def delete(card_id: str, token: str):
     if token_validator.validator(token, ('admin',)):
         try:

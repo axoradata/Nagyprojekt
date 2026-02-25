@@ -10,7 +10,7 @@ model = usersModel.UsersModel
 token_validator = token.Token()
 
 # logout user
-@router.post("/user/logout{token}" , tags=["user"])
+@router.post("/user/logout" , tags=["user"])
 async def logout(token: str):
     if token_validator.get_token(token):
         try:

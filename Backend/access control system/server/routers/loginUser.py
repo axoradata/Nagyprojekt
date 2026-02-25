@@ -10,12 +10,15 @@ model = usersModel.UsersModel
 token_validator = token.Token()
 
 # login user
-@router.post("/user/login{username, password}" , tags=["user"])
+@router.post("/user/login" , tags=["user"])
 async def login(username: str, password: str):
     try:
         sql_query_users = f"""
-                        SELECT disposition FROM employee FULL JOIN users ON users.card_id = employee.card_id WHERE name='{username}' AND password='{password}';
-                        """
+            SELECT users.card_id, employee.disposition, employee.full_name 
+            FROM users 
+            JOIN employee ON users.card_id = employee.card_id 
+            WHERE users.name='{username}' AND users.password='{password}';
+        """
 
         data = query.select(sql_query_users)
 
@@ -26,7 +29,7 @@ async def login(username: str, password: str):
                             """
 
             query.insert_into(sql_query_set)
-            return {"status": 1, "token": new_token, "disposition": data}
+            return {"status": 1, "token": new_token, "card_id": data[0], "role": data[1],  "name": data[2]}
         else:
             return {"status": 0}
 

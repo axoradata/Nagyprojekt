@@ -30,7 +30,7 @@ class Token:
             user_disposition = self.get_disposition(user)
             if user_disposition != 'False':
                 if user_disposition in disposition: return True
-                elif disposition == "abrakadabra": return True
+                elif disposition == ("admin",): return True
                 else: return False
             else: return False
         else: return False

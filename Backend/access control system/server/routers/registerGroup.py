@@ -8,7 +8,7 @@ router = APIRouter()
 token_validator = token.Token()
 
 # create new group
-@router.post("/group/register{group_name, token}" , tags=["group"])
+@router.post("/group/register" , tags=["group"])
 async def register_group(group_name: str, token: str):
     if token_validator.validator(token, ('group_leader','admin',)):
         try:
