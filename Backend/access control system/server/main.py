@@ -13,6 +13,7 @@ from routers import deleteGroup
 from routers import userInfo
 from routers import getAllUser
 from routers import updatePass
+from routers import updateGroup
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -38,6 +39,7 @@ app.include_router(deleteGroup.router)
 app.include_router(userInfo.router)
 app.include_router(getAllUser.router)
 app.include_router(updatePass.router)
+app.include_router(updateGroup.router)
 @app.get("/")
 async def read_root():
     return {"Hello": "Main World"}

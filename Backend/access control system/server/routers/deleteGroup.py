@@ -8,41 +8,32 @@ router = APIRouter()
 token_validator = token.Token()
 
 # delete group
-@router.put("/group/delete_group" , tags=["group"])
-async def delete_group(token: str):
-    if token_validator.validator(token, ('admin', 'group_leader',)):
-        group_name = ''
-        sql_query_get_name = f"""
-                    SELECT group_name FROM USERS WHERE token='{token}';
-                                    """
-        get_data = query.select(sql_query_get_name)
-        if get_data:
-            group_name = get_data[0]
-        else:
-            return {"status": 0}
+@router.put("/group/delete_group", tags=["group"])
+async def delete_group(group_name: str, token: str):
+    card_id = token_validator.get_token(token)
+    if not card_id or card_id == 'False':
+        return {"status": 0, "message": "Érvénytelen token"}
 
-        sql_query_all_name = f"""
-                    SELECT name FROM USERS WHERE group_name='{group_name}';
-                                    """
+    user_disposition = token_validator.get_disposition(card_id)
 
-        datas = query.select_all(sql_query_all_name)
+    try:
+        # ADMIN ÁG
+        if user_disposition == 'admin':
+            sql_del = f"UPDATE users SET group_name=NULL WHERE group_name='{group_name}';"
+            query.insert_into(sql_del)
+            return {"status": 1, "message": "Csoport törölve (Admin által)"}
 
-        for i in datas:
-            str_data = str(i)
-            leng = len(str_data) - 3
-            clean_data = str_data[2:leng]
-
+        # EZT A RÉSZT CSERÉLD KI:
+        elif user_disposition == 'team_leader':
+            # Nem ellenőrizzük, hogy a sajátod-e, ha team_leader vagy, törölheted
             try:
-                sql_query_set = f"""
-                UPDATE users SET group_name=null WHERE name='{clean_data}';
-                                """
+                sql_del = f"UPDATE users SET group_name=NULL WHERE group_name='{group_name}';"
+                query.insert_into(sql_del)
+                return {"status": 1, "message": "Csoport törölve"}
+            except:
+                return {"status": 0, "message": "Adatbázis hiba a törlés során"}
 
-                query.insert_into(sql_query_set)
+        return {"status": 0, "message": "Nincs jogosultság"}
 
-            except Exception as e:
-                return {"status": 0, "error": e}
-
-        return  {"status": 1}
-
-    else:
-        return {"status": 0}
+    except Exception as e:
+        return {"status": 0, "error": str(e)}
