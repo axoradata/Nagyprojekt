@@ -50,7 +50,7 @@
             </router-link>
           </li>
 
-          <li v-if="user.role === 'admin' || user.role === 'leader'" class="nav-item">
+          <li v-if="user.role === 'admin' || user.role === 'team_leader'" class="nav-item">
             <router-link
               to="/groups"
               class="nav-link custom-nav-link"
@@ -119,19 +119,24 @@ const route = useRoute()
 const user = ref(JSON.parse(localStorage.getItem("user") || "{}"))
 
 const logout = async () => {
+  const token = localStorage.getItem('token');
+  
   try {
-    await axios.post('http://localhost:8000/user/logout', null, {
-      params: { username: user.value.username }
-    })
-    console.log("Backend kijelentkezés sikeres.")
-  } catch (error) {
-    console.error("Hiba a backend kijelentkezés során:", error)
+    if (token) {
+      // A második paraméter a Body (null), a harmadik a config, amiben a params van
+      await axios.post('http://localhost:8000/user/logout', null, { 
+        params: { token: token } 
+      });
+    }
+  } catch (err) {
+    console.error("Logout hiba:", err);
   } finally {
-    localStorage.removeItem("user")
-    localStorage.removeItem("token")
-    router.push("/login")
+    // Akár sikerült a backendnek, akár nem, mi kiléptetjük a felhasználót
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/login');
   }
-}
+};
 
 const isActive = (path) => {
   return route.path.startsWith(path)

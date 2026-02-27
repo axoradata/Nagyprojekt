@@ -1,300 +1,280 @@
 <template>
   <div class="page-container">
     <div class="page-content-box">
-      
       <h2 class="section-title">Csoportok</h2>
       
-      <button 
-        class="btn custom-btn-primary mb-4 w-100" 
-        data-bs-toggle="modal" 
-        data-bs-target="#addGroupModal"
-      >
-        <i class="bi bi-plus-circle-fill me-2"></i> Új csoport hozzáadása
-      </button>
+      <div v-if="currentUser.disposition !== 'worker'" class="mb-4 text-center">
+        <button class="btn custom-btn-primary action-btn-width" @click="showGroupModal = true">
+          <i class="bi bi-plus-circle-fill me-2"></i> Új csoport
+        </button>
+      </div>
 
-      <div class="group-grid">
-        <div v-for="g in reactiveGroups" :key="g.id" class="group-card">
-          
-          <div class="card-header-flex">
-            <h4 class="group-name">{{ g.name }}</h4>
-            
-            <button 
-              class="btn btn-sm delete-btn" 
-              @click="deleteGroup(g.id)"
-              title="Csoport törlése"
-            >
-              <i class="bi bi-trash-fill"></i>
-            </button>
+      <div class="profile-section">
+        <h3 class="section-subtitle">Aktív munkacsoportok</h3>
+        <hr class="section-divider">
+
+        <div v-if="displayGroups.length === 0" class="text-center py-5">
+          <p class="empty-text">Nincsenek aktív csoportok.</p>
+        </div>
+
+        <div v-for="g in displayGroups" :key="g.name" class="group-container mb-4">
+          <div class="data-row header-row align-items-center">
+            <div class="data-label fw-bold">{{ g.name }}</div>
+            <div class="data-value">
+              <button @click="handleDeleteGroup(g.name)" class="btn btn-sm text-danger border-0 p-0 shadow-none">
+                <i class="bi bi-trash3-fill fs-5"></i>
+              </button>
+            </div>
           </div>
-          
-          <div class="card-body-content">
-            <div class="info-row leader-info">
-              <i class="bi bi-person-badge-fill me-2"></i> Vezető: 
-              <strong class="leader-name">{{ getLeaderName(g.leader_id) }}</strong>
+
+          <div class="data-row">
+            <div class="data-label text-secondary">Csoportvezető:</div>
+            <div class="data-value"><span class="role-badge">{{ g.leader || 'Nincs' }}</span></div>
+          </div>
+
+          <div class="tag-section">
+            <div class="d-flex justify-content-between align-items-center mb-2 mt-2">
+              <span class="small text-secondary fw-bold">Tagok:</span>
+              <button class="btn btn-sm add-member-btn" @click="openAddMember(g.name)">
+                <i class="bi bi-plus-lg"></i>
+              </button>
             </div>
             
-            <div class="info-row member-count-info">
-              <i class="bi bi-people-fill me-2"></i> Tagok száma: 
-              <span class="member-count">{{ g.members.length }}</span>
+            <div class="d-flex flex-wrap gap-2">
+              <div v-for="m in g.members" :key="m.card_id" class="member-chip">
+                <span>{{ m.full_name }}</span>
+                <button @click="removeMemberFromGroup(m.card_id)" class="btn-remove-member">
+                  <i class="bi bi-x-circle-fill"></i>
+                </button>
+              </div>
             </div>
-
-            <hr class="card-divider">
-
-            <div class="members-detail">
-              <p class="mb-1 fw-bold">Tagok listája:</p>
-              <ul class="list-unstyled member-list">
-                <li v-for="memberId in g.members" :key="memberId">
-                  <i class="bi bi-person-fill me-1"></i> {{ getUserName(memberId) }}
-                </li>
-                <li v-if="g.members.length === 0" class="no-member">Nincs tag</li>
-              </ul>
-            </div>
-
           </div>
         </div>
       </div>
-
-      <div v-if="reactiveGroups.length === 0" class="text-center mt-5 p-4 no-groups-message">
-          <i class="bi bi-info-circle-fill me-2"></i> Nincsenek létrehozott csoportok.
-      </div>
-
     </div>
-  </div>
 
-  <div class="modal fade" id="addGroupModal" tabindex="-1" aria-labelledby="addGroupModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content custom-modal">
-        <div class="modal-header">
-          <h5 class="modal-title" id="addGroupModalLabel">Új csoport létrehozása</h5>
-          <button type="button" class="btn-close" :class="{'btn-close-white': isDarkMode}" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div v-if="showGroupModal || showMemberModal" class="custom-backdrop" @click.self="closeModals">
+      
+      <div v-if="showGroupModal" class="custom-modal shadow-lg">
+        <h4 class="mb-4 text-center">Új csoport létrehozása</h4>
+        <div class="mb-3">
+          <label class="small mb-1 text-secondary">Csoport neve:</label>
+          <input type="text" v-model="newGroupName" class="form-control custom-input">
         </div>
-        <form @submit.prevent="addNewGroup">
-          <div class="modal-body">
-            
-            <div class="mb-3">
-              <label for="groupName" class="form-label">Csoport neve</label>
-              <input type="text" class="form-control custom-input" id="groupName" v-model="newGroupName" required>
-            </div>
-            
-            <div class="mb-3">
-              <label for="groupLeader" class="form-label">Csoportvezető (Leader)</label>
-              <select class="form-select custom-input" id="groupLeader" v-model="newGroupLeaderId" required>
-                <option disabled value="">Válasszon vezetőt</option>
-                <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }} ({{ u.role }})</option>
-              </select>
-            </div>
-            
+
+        <div v-if="currentUser.disposition === 'admin'" class="mb-3">
+          <label class="small mb-1 text-secondary">Vezető kinevezése:</label>
+          <div class="dropdown w-100">
+            <button class="btn dropdown-toggle w-100 custom-select-btn" type="button" data-bs-toggle="dropdown">
+              {{ getSelectedLeaderName }}
+            </button>
+            <ul class="dropdown-menu w-100 custom-dropdown-menu shadow">
+              <li v-for="l in freeLeaders" :key="l.card_id">
+                <button class="dropdown-item" type="button" @click="selectedLeaderId = l.card_id">
+                  {{ l.full_name }}
+                </button>
+              </li>
+            </ul>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mégsem</button>
-            <button type="submit" class="btn custom-btn-primary">Létrehozás</button>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button class="btn btn-dark-outline w-100" @click="closeModals">Mégse</button>
+          <button class="btn custom-btn-primary w-100" @click="handleCreateGroup" :disabled="!newGroupName || (currentUser.disposition === 'admin' && !selectedLeaderId)">Mentés</button>
+        </div>
+      </div>
+
+      <div v-if="showMemberModal" class="custom-modal shadow-lg">
+        <h4 class="mb-3 text-center">Tagok hozzáadása</h4>
+        <div class="scroll-list">
+          <div v-for="u in freeUsers" :key="u.card_id" class="list-item" @click="addMemberToGroup(u.card_id)">
+            <span>{{ u.full_name }}</span>
+            <i class="bi bi-plus-circle text-accent"></i>
           </div>
-        </form>
+          <div v-if="freeUsers.length === 0" class="p-4 text-center text-muted">Nincs szabad dolgozó.</div>
+        </div>
+        <button class="btn custom-btn-primary w-100 mt-4" @click="closeModals">Bezárás</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { groups, users } from '../data' 
+import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
 
-const reactiveGroups = ref(JSON.parse(JSON.stringify(groups)))
-const newGroupName = ref('')
-const newGroupLeaderId = ref('')
+const allUsers = ref([]);
+const showGroupModal = ref(false);
+const showMemberModal = ref(false);
+const newGroupName = ref('');
+const activeGroupName = ref('');
+const selectedLeaderId = ref('');
+const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'));
 
-// Figyeljük az aktuális témát a bezáró gomb (X) színe miatt
-const isDarkMode = computed(() => {
-    return document.documentElement.getAttribute('data-theme') !== 'light';
+const fetchData = async () => {
+  const token = localStorage.getItem('token');
+  try {
+    const res = await axios.get('http://localhost:8000/user/all', { params: { token } });
+    if (res.data.status === 1) allUsers.value = res.data.users;
+  } catch (err) { console.error(err); }
+};
+
+onMounted(fetchData);
+
+const freeLeaders = computed(() => 
+  allUsers.value.filter(u => 
+    u.disposition?.toLowerCase().includes('leader') && 
+    (!u.group_name || u.group_name === 'null' || u.group_name === 'None' || u.group_name === '')
+  )
+);
+
+const freeUsers = computed(() => 
+  allUsers.value.filter(u => (!u.group_name || u.group_name === 'null' || u.group_name === 'None' || u.group_name === ''))
+);
+
+const getSelectedLeaderName = computed(() => {
+  if (!selectedLeaderId.value) return 'Válassz egy vezetőt...';
+  const leader = freeLeaders.value.find(l => l.card_id === selectedLeaderId.value);
+  return leader ? leader.full_name : 'Válassz egy vezetőt...';
 });
 
-const getUserName = (id) => {
-  const user = users.find(u => u.id === id)
-  return user ? user.username : 'Ismeretlen'
-}
-
-const getLeaderName = (leader_id) => {
-  return getUserName(leader_id)
-}
-
-const deleteGroup = (id) => {
-  if (confirm('Biztosan törölni szeretnéd ezt a csoportot?')) {
-    reactiveGroups.value = reactiveGroups.value.filter(g => g.id !== id)
-  }
-}
-
-const addNewGroup = () => {
-  if (newGroupName.value && newGroupLeaderId.value) {
-    const maxId = reactiveGroups.value.length > 0 
-                  ? Math.max(...reactiveGroups.value.map(g => g.id))
-                  : 0
-    const newId = maxId + 1
-    
-    const newGroup = {
-      id: newId,
-      name: newGroupName.value,
-      leader_id: parseInt(newGroupLeaderId.value),
-      members: [],
+const displayGroups = computed(() => {
+  const groupsMap = {};
+  allUsers.value.forEach(u => {
+    if (u.group_name && u.group_name !== 'null' && u.group_name !== 'None' && u.group_name !== '') {
+      if (!groupsMap[u.group_name]) groupsMap[u.group_name] = { name: u.group_name, leader: '', members: [] };
+      if (u.disposition?.toLowerCase().includes('leader')) {
+        groupsMap[u.group_name].leader = u.full_name;
+      } else {
+        groupsMap[u.group_name].members.push({ full_name: u.full_name, card_id: u.card_id });
+      }
     }
+  });
+  return Object.values(groupsMap);
+});
 
-    reactiveGroups.value.push(newGroup)
-    newGroupName.value = ''
-    newGroupLeaderId.value = ''
-    
-    const modalElement = document.getElementById('addGroupModal')
-    if (modalElement && window.bootstrap) {
-        const bootstrapModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement)
-        bootstrapModal.hide()
-    }
-  }
-}
+const openAddMember = (name) => {
+  activeGroupName.value = name;
+  showMemberModal.value = true;
+};
+
+// JAVÍTVA: Hozzáadva a .value minden ref változóhoz
+const closeModals = () => {
+  showGroupModal.value = false;
+  showMemberModal.value = false;
+  newGroupName.value = '';
+  selectedLeaderId.value = '';
+};
+
+const handleCreateGroup = async () => {
+  try {
+    const leaderId = currentUser.value.disposition === 'admin' ? selectedLeaderId.value : currentUser.value.card_id;
+    await axios.post(`http://localhost:8000/group/register`, null, {
+      params: { 
+        group_name: newGroupName.value, 
+        token: localStorage.getItem('token'),
+        leader_card_id: leaderId
+      }
+    });
+    fetchData(); 
+    closeModals();
+  } catch (err) { console.error(err); }
+};
+
+const handleDeleteGroup = async (name) => {
+  if (!confirm(`Biztosan törlöd a(z) ${name} csoportot?`)) return;
+  try {
+    const res = await axios.put(`http://localhost:8000/group/delete_group`, null, {
+      params: { group_name: name, token: localStorage.getItem('token') }
+    });
+    if (res.data.status === 1) fetchData();
+    else alert(res.data.message);
+  } catch (err) { console.error(err); }
+};
+
+const addMemberToGroup = async (card_id) => {
+  try {
+    await axios.post(`http://localhost:8000/user/update_group`, null, {
+      params: { card_id, group_name: activeGroupName.value, token: localStorage.getItem('token') }
+    });
+    fetchData(); 
+    closeModals();
+  } catch (err) { console.error(err); }
+};
+
+const removeMemberFromGroup = async (card_id) => {
+  if (!confirm("Eltávolítod a tagot?")) return;
+  try {
+    await axios.put(`http://localhost:8000/group/delete_member`, null, {
+      params: { card_id: card_id, token: localStorage.getItem('token') }
+    });
+    fetchData();
+  } catch (err) { console.error(err); }
+};
 </script>
 
 <style scoped>
-.page-container {
-  padding: 2rem; 
-  min-height: 100vh; 
-  width: 100%; 
+.page-container { padding: 2rem; min-height: 100vh; background-color: var(--bg-main); }
+.page-content-box { background-color: var(--bg-card); color: var(--text-main); padding: 2.5rem; border-radius: 16px; max-width: 900px; margin: 0 auto; border: 1px solid var(--border-color); }
+.section-title { border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; margin-bottom: 2.5rem; }
+.profile-section { background-color: var(--bg-inner); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); }
+
+.custom-input, .custom-select-btn {
+  background-color: var(--bg-inner) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-main) !important;
+  padding: 0.75rem;
+  border-radius: 8px;
 }
 
-.page-content-box {
-  background-color: var(--bg-card); 
-  color: var(--text-main); 
-  padding: 2rem;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 1000px; 
-  margin: 0 auto;
+.custom-dropdown-menu {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.custom-dropdown-menu .dropdown-item {
+  color: var(--text-main) !important;
+}
+
+.custom-dropdown-menu .dropdown-item:hover {
+  background-color: var(--accent) !important;
+  color: white !important;
+}
+
+.custom-btn-primary { background-color: var(--accent); color: white; border: none; font-weight: 600; padding: 0.8rem; border-radius: 8px; }
+
+.btn-dark-outline {
+  background: transparent;
   border: 1px solid var(--border-color);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.section-title {
-    color: var(--text-main);
-    border-bottom: 2px solid var(--accent);
-    padding-bottom: 0.5rem;
-    margin-bottom: 1.5rem;
-    font-size: 1.8rem;
-}
-
-.group-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem; 
-}
-
-.group-card {
-  background-color: var(--bg-inner); 
-  color: var(--text-main); 
-  padding: 1.25rem;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  transition: all 0.2s ease;
-}
-
-.group-card:hover {
-    transform: translateY(-3px);
-    border-color: var(--accent);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-}
-
-.card-header-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.5rem;
-}
-
-.group-name {
   color: var(--text-main);
-  font-size: 1.3rem;
-  margin: 0;
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.leader-name {
-    color: var(--accent);
+.data-row { display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px dashed var(--border-color); align-items: center; }
+.header-row { border-bottom: 2px solid var(--accent) !important; }
+.role-badge { background: var(--accent); color: white; padding: 3px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+
+.member-chip { 
+  background: var(--bg-card); 
+  border: 1px solid var(--border-color); 
+  padding: 5px 12px; 
+  border-radius: 20px; 
+  display: flex; 
+  align-items: center;
+  gap: 8px;
+  color: var(--text-main);
 }
 
-.card-divider {
-    border-top: 1px solid var(--border-color);
-    margin: 1rem 0;
-    opacity: 0.5;
+.btn-remove-member {
+  background: none; border: none; padding: 0; color: #ff4d4d; cursor: pointer; display: flex; align-items: center;
 }
 
-.member-list {
-    margin-top: 0.5rem;
-    padding-left: 0.5rem;
-    font-size: 0.9rem;
-}
+.add-member-btn { color: var(--accent); background: transparent; border: 1px solid var(--accent); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
 
-.member-list li {
-    color: var(--text-main);
-    opacity: 0.8;
-    margin-bottom: 0.2rem;
-}
-
-.no-member {
-    font-style: italic;
-    opacity: 0.5;
-}
-
-.delete-btn {
-    color: #e74c3c; 
-    transition: transform 0.2s;
-}
-
-.delete-btn:hover {
-    color: #c0392b;
-    transform: scale(1.2);
-}
-
-/* --- MODAL STÍLUSOK --- */
-.custom-modal {
-    background-color: var(--bg-card);
-    color: var(--text-main);
-    border: 1px solid var(--border-color);
-}
-
-.modal-header, .modal-footer {
-    border-color: var(--border-color);
-}
-
-.custom-input {
-    background-color: var(--bg-inner);
-    border-color: var(--border-color);
-    color: var(--text-main);
-}
-
-.custom-input:focus {
-    background-color: var(--bg-inner);
-    color: var(--text-main);
-    border-color: var(--accent);
-    box-shadow: 0 0 0 0.25rem rgba(148, 137, 121, 0.25);
-}
-
-.custom-btn-primary {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  color: white;
-}
-
-.custom-btn-primary:hover {
-  filter: brightness(1.1);
-}
-
-.no-groups-message {
-    background-color: var(--bg-inner);
-    border-radius: 8px;
-    border: 1px dashed var(--accent);
-    color: var(--accent);
-}
-
-/* Bootstrap "X" gomb invertálása sötét módban */
-.btn-close-white {
-    filter: invert(1) grayscale(100%) brightness(200%);
-}
+.custom-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1050; backdrop-filter: blur(4px); }
+.custom-modal { background: var(--bg-card); padding: 2rem; border-radius: 16px; width: 95%; max-width: 400px; border: 1px solid var(--border-color); color: var(--text-main); }
+.scroll-list { max-height: 250px; overflow-y: auto; background-color: var(--bg-inner); border: 1px solid var(--border-color); border-radius: 10px; }
+.list-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border-color); cursor: pointer; color: var(--text-main); }
+.text-accent { color: var(--accent) !important; }
 </style>
