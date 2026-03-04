@@ -1,1 +1,1 @@
-remélem jól hozom létre
+A Unit teszteléseket a backend egyes funkcióira végeztük el. 
