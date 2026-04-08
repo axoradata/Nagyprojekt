@@ -1,4 +1,4 @@
-A pythonProject a Raspberry szerver oldali kommunikációjára szolgáló porjekt. Mivel a Raspberry egy single board modell, emiatt nem képes önállóan adatbázis-kapcsolat kapcsolat kialakítására.
+A pythonProject a Raspberry szerver oldali kommunikációjára szolgáló projekt. Mivel a Raspberry egy single board modell, emiatt nem képes önállóan adatbázis-kapcsolat kapcsolat kialakítására.
 A projekt kapcsolatot teremt az adatbázis és az eszköz között, lehetővé teszi, hogy az eszközzel beolvasott adatok megjelenjelenek az adatbázisban. E mellett a program készít a bejelentkezésekről '-txt' fájlokba úgynvezetett belépésilogokat.
 A program minden egyes nap egy újabb fájlt készít, amelyben feltünteti a belépési kísérleteket - fontos, hogy a sikeresek mellett a sikertelenek is megjelennek - jegyzi, hogy ki melyik felhasználó mikor kísérelte meg a bejelentkezést, valamint azt hogy ez a próbálkozás sikeres vagy sikertelen volt-e. 
 
