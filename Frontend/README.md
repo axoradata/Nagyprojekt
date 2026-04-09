@@ -10,21 +10,21 @@ A projekt felépítése a követlező:
     ├── src /  
     │   ├── assets   
     │   ├── components /   
-    │   │   ├── ChartCard.Vue   
-    │   │   ├── LogTable.Vue   
-    │   │   ├── Sidebar.Vue   
-    │   │   └── UserCard.Vue   
+    │   │   ├── ChartCard.vue   
+    │   │   ├── LogTable.vue   
+    │   │   ├── Sidebar.vue   
+    │   │   └── UserCard.vue   
     │   ├── router /   
     │   │   └── index.js   
     │   ├── services   
     │   ├── utils   
     │   ├── views /  
-    │   │   ├── Dashboard.Vue   
-    │   │   ├── Group.Vue   
-    │   │   ├── Login.Vue   
-    │   │   ├── Logs.Vue   
-    │   │   ├── Profile.Vue  
-    │   │   ├── RfidManagement.Vue   
+    │   │   ├── Dashboard.vue   
+    │   │   ├── Group.vue   
+    │   │   ├── Login.vue   
+    │   │   ├── Logs.vue   
+    │   │   ├── Profile.vue  
+    │   │   ├── RfidManagement.vue   
     │   │   └── Users.vue  
     │   ├── App.vue   
     │   ├── config.js   
@@ -32,9 +32,9 @@ A projekt felépítése a követlező:
     │   ├── main.js    
     │   └── style.css   
     ├── .gitignore  
-    ├── index.html 
-    ├── package-lock.json 
-    ├── package.json 
-    ├── README.md 
-    └── vite.config.js   
+    ├── index.html   
+    ├── package-lock.json     
+    ├── package.json   
+    ├── README.md   
+    └── vite.config.js     
 
